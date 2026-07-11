@@ -1,0 +1,52 @@
+{
+  "case": "Case_P087",
+  "model": "M1",
+  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M1_best.pth",
+  "source_npz": "E:\\Thesis Dataset 3\\Dataset\\test\\Case_P087.npz",
+  "dysfunction_stats": {
+    "voxel_counts": {
+      "LV_cavity": 1973,
+      "MYO": 2865,
+      "LV_total": 4838,
+      "MI": 64,
+      "MVO": 0,
+      "dysfunction_MI_or_MVO": 64
+    },
+    "percent_of_MYO": {
+      "MI": 2.23,
+      "MVO": 0.0,
+      "dysfunction": 2.23
+    },
+    "percent_of_LV_cavity": {
+      "MI": 0.0,
+      "MVO": 0.0,
+      "dysfunction": 0.0
+    },
+    "percent_of_LV_total_cavity_plus_MYO": {
+      "MI": 1.32,
+      "MVO": 0.0,
+      "dysfunction": 1.32
+    },
+    "MVO_as_percent_of_MI": 0.0
+  },
+  "clinical": {
+    "Gap between slices": "10 mm",
+    "Sex": "F",
+    "Age": "62",
+    "Tobacco": "3",
+    "Overweight": "N",
+    "Arterial hypertension": "Y",
+    "Diabetes": "N",
+    "Familial history of coronary artery disease": "N",
+    "ECG (ST +)": "Y",
+    "Troponin": "5.2",
+    "Killip Max": "1",
+    "FEVG": "47",
+    "NTProBNP": "2989"
+  },
+  "figures": [
+    "E:\\Thesis Dataset 3\\figures\\patients\\Case_P087\\Case_P087_report.png",
+    "E:\\Thesis Dataset 3\\figures\\patients\\Case_P087\\Case_P087_panels.png",
+    "E:\\Thesis Dataset 3\\figures\\patients\\Case_P087\\Case_P087_allslices.png"
+  ]
+}

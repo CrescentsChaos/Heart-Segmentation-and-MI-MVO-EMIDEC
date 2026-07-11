@@ -1,0 +1,51 @@
+{
+  "ablation_table": [
+    {
+      "variant": "M1",
+      "status": "missing"
+    },
+    {
+      "variant": "M2",
+      "status": "missing"
+    },
+    {
+      "variant": "M3",
+      "status": "missing"
+    },
+    {
+      "variant": "M4",
+      "status": "missing"
+    },
+    {
+      "variant": "M5",
+      "status": "missing"
+    }
+  ],
+  "sota_targets": [
+    {
+      "method": "nnU-Net (Isensee et al.)",
+      "year": 2021,
+      "LV": 0.941,
+      "MYO": 0.856,
+      "MI": 0.72,
+      "MVO": null
+    },
+    {
+      "method": "ICPIU-Net (Brahim et al.)",
+      "year": 2022,
+      "LV": 0.932,
+      "MYO": 0.895,
+      "MI": 0.783,
+      "MVO": null
+    },
+    {
+      "method": "Schwab et al.",
+      "year": 2025,
+      "LV": null,
+      "MYO": 0.83,
+      "MI": 0.72,
+      "MVO": null
+    }
+  ],
+  "note": "Target: M5 MI Dice should exceed ICPIU-Net 0.783 for a meaningful SOTA claim."
+}

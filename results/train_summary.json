@@ -1,0 +1,7 @@
+{
+  "M5": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_best.pth",
+    "best_mi_dice": 0.4458360896717327,
+    "params": 16058893
+  }
+}
