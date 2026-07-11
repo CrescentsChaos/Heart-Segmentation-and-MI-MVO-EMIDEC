@@ -1,21 +1,22 @@
 {
   "case": "Case_P001",
-  "model": "M1",
-  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M1_best.pth",
+  "model": "AFDD-Net",
+  "variant": "M5",
+  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M5_best.pth",
   "source_npz": "E:\\Thesis Dataset 3\\Dataset\\train\\Case_P001.npz",
   "dysfunction_stats": {
     "voxel_counts": {
-      "LV_cavity": 4586,
-      "MYO": 5256,
-      "LV_total": 9842,
-      "MI": 3067,
-      "MVO": 0,
-      "dysfunction_MI_or_MVO": 3067
+      "LV_cavity": 4669,
+      "MYO": 5753,
+      "LV_total": 10422,
+      "MI": 3134,
+      "MVO": 2013,
+      "dysfunction_MI_or_MVO": 3134
     },
     "percent_of_MYO": {
-      "MI": 58.35,
-      "MVO": 0.0,
-      "dysfunction": 58.35
+      "MI": 54.48,
+      "MVO": 34.99,
+      "dysfunction": 54.48
     },
     "percent_of_LV_cavity": {
       "MI": 0.0,
@@ -23,11 +24,11 @@
       "dysfunction": 0.0
     },
     "percent_of_LV_total_cavity_plus_MYO": {
-      "MI": 31.16,
-      "MVO": 0.0,
-      "dysfunction": 31.16
+      "MI": 30.07,
+      "MVO": 19.31,
+      "dysfunction": 30.07
     },
-    "MVO_as_percent_of_MI": 0.0
+    "MVO_as_percent_of_MI": 64.23
   },
   "clinical": {
     "Gap between slices": "10 mm",

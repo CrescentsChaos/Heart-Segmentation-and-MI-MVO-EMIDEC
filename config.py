@@ -64,3 +64,11 @@ SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
 DEFAULT_VARIANT = "M5"
+
+# Official model identity (paper / thesis comparison)
+MODEL_NAME = "AFDD-Net"
+MODEL_FULL_NAME = (
+    "Anisotropic Factorized Dual-Decoder Network "
+    "with MYO Soft-Gating and Topology Consistency"
+)
+PAPER_FIGURES_DIR = FIGURES_DIR / "paper"

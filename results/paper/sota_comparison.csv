@@ -1,0 +1,5 @@
+Method,Citation,Year,Architecture,LV Dice,MYO Dice,MI Dice,MVO Dice,Dataset
+nnU-Net,Isensee et al.,2021,Self-configured 3D U-Net,0.941,0.856,0.72,,EMIDEC
+ICPIU-Net,Brahim et al.,2022,Cascaded 3D + VAE prior,0.932,0.895,0.783,,EMIDEC
+2D-3D Cascade,Schwab et al.,2025,Error-correcting 2D-3D cascade CNN,,0.83,0.72,,LGE-CMR / EMIDEC-related
+AFDD-Net,this work,2026,Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency,0.918784295342279,0.7836434593892313,0.36717064875080224,0.09112060334904923,EMIDEC

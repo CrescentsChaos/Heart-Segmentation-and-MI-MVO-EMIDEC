@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 import config as cfg
+from model_identity import MODEL_NAME, VARIANT_SHORT
 from data.preprocess import EMIDECDataset
 from losses.joint_loss import JointLoss
 from metrics import binary_metrics, summarize
@@ -82,7 +83,7 @@ def primary_score(metrics: dict, variant: str) -> float:
 
 def train_variant(variant: str, epochs: int, batch_size: int, device: torch.device):
     variant = variant.upper()
-    print(f"\n{'='*70}\nTraining {variant}\n{'='*70}")
+    print(f"\n{'='*70}\nTraining {variant} ({VARIANT_SHORT.get(variant, variant)}) | {MODEL_NAME}\n{'='*70}")
     train_ds = EMIDECDataset(cfg.DATASET_DIR / "train", augment=True)
     val_ds = EMIDECDataset(cfg.DATASET_DIR / "val", augment=False)
     train_loader = DataLoader(
@@ -187,8 +188,12 @@ def main():
     args = parser.parse_args()
     set_seed(cfg.SEED)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Model family: {MODEL_NAME}")
     print(f"Device: {device}")
-    variants = ["M1", "M2", "M3", "M4", "M5"] if args.variant.lower() == "all" else [args.variant.upper()]
+    if args.variant.lower() == "all":
+        variants = ["M1", "M2", "M3", "M4", "M5"]
+    else:
+        variants = [v.strip().upper() for v in args.variant.split(",")]
     summary = {}
     for v in variants:
         path, score, n_params = train_variant(v, args.epochs, args.batch_size, device)

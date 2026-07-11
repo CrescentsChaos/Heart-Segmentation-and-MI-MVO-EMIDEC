@@ -7,13 +7,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 import config as cfg
-
-SOTA = [
-    {"method": "nnU-Net (Isensee et al.)", "year": 2021, "LV": 0.941, "MYO": 0.856, "MI": 0.720, "MVO": None},
-    {"method": "ICPIU-Net (Brahim et al.)", "year": 2022, "LV": 0.932, "MYO": 0.895, "MI": 0.783, "MVO": None},
-    {"method": "Schwab et al.", "year": 2025, "LV": None, "MYO": 0.830, "MI": 0.720, "MVO": None},
-]
+from model_identity import MODEL_NAME, MODEL_FULL_NAME, SOTA_BENCHMARKS, TARGET_MI_DICE, VARIANT_SHORT
 
 
 def _dice(summary, key):
@@ -34,12 +30,13 @@ def main():
     for v in ["M1", "M2", "M3", "M4", "M5"]:
         s = load_variant(v, "test")
         if s is None:
-            rows.append({"variant": v, "status": "missing"})
+            rows.append({"variant": v, "status": "missing", "display": VARIANT_SHORT[v]})
             continue
         mi_key = "Infarct" if v in ("M1", "M2") else "MI"
         rows.append(
             {
                 "variant": v,
+                "display": VARIANT_SHORT[v],
                 "LV": _dice(s, "LV"),
                 "MYO": _dice(s, "MYO"),
                 "MI": _dice(s, mi_key),
@@ -50,24 +47,29 @@ def main():
         )
 
     out = {
+        "model_name": MODEL_NAME,
+        "model_full_name": MODEL_FULL_NAME,
         "ablation_table": rows,
-        "sota_targets": SOTA,
-        "note": "Target: M5 MI Dice should exceed ICPIU-Net 0.783 for a meaningful SOTA claim.",
+        "sota_targets": SOTA_BENCHMARKS,
+        "target_mi_dice": TARGET_MI_DICE,
+        "note": f"Target: {MODEL_NAME} (M5) infarct Dice should exceed ICPIU-Net ({TARGET_MI_DICE}).",
     }
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path = cfg.RESULTS_DIR / "paper_tables.json"
     path.write_text(json.dumps(out, indent=2), encoding="utf-8")
 
-    print("Ablation (test Dice)")
-    print(f"{'Var':<4} {'LV':>7} {'MYO':>7} {'MI':>7} {'MVO':>7} {'Params':>8} {'ms':>7}")
+    print(f"{MODEL_NAME} ablation (test Dice)")
+    print(f"{'Var':<4} {'Display':<22} {'LV':>7} {'MYO':>7} {'MI':>7} {'MVO':>7} {'Params':>8} {'ms':>7}")
     for r in rows:
         if r.get("status") == "missing":
-            print(f"{r['variant']:<4}  (not evaluated yet)")
+            print(f"{r['variant']:<4} {r['display']:<22}  (not evaluated yet)")
             continue
+
         def f(x):
             return f"{x:.3f}" if isinstance(x, float) else "   -  "
+
         print(
-            f"{r['variant']:<4} {f(r['LV']):>7} {f(r['MYO']):>7} {f(r['MI']):>7} {f(r['MVO']):>7} "
+            f"{r['variant']:<4} {r['display']:<22} {f(r['LV']):>7} {f(r['MYO']):>7} {f(r['MI']):>7} {f(r['MVO']):>7} "
             f"{r['params_M']:>7.2f}M {r['inference_ms']:>6.1f}"
         )
     print(f"\nSaved {path}")
