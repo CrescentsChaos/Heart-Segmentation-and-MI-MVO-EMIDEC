@@ -36,11 +36,11 @@ After evaluation, `python -m src.paper_figures` writes:
 |------|---------|
 | `figures/paper/training_curves_*.png` | Loss / Dice / HD95 / Recall curves |
 | `figures/paper/ablation_*.png` | Ablation Dice, HD95, Recall, IoU |
-| `figures/paper/sota_comparison_*.png` | vs nnU-Net, ICPIU-Net, Schwab 2025 |
+| `figures/paper/sota_comparison_*.png` | vs verified EMIDEC-only methods (Zhang, ICPIU-Net, Schwab, …) |
 | `figures/paper/table_*.png` | Rendered thesis tables |
 | `results/paper/PAPER_COMPARISON.md` | Markdown comparison report |
 | `results/paper/*.csv` | Ablation + SOTA CSVs |
 
-SOTA MI Dice target: **0.783** (ICPIU-Net).
+SOTA MI Dice target: **0.760** (Schwab 2025, current EMIDEC best). Stretch: **0.783** (ICPIU-Net 5-fold).
 
-Raw EMIDEC path: `config.py` ? `EMIDEC_ROOT`.
+Raw EMIDEC path: `config.py` → `EMIDEC_ROOT`.

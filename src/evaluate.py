@@ -1,41 +1,63 @@
 """Evaluate checkpoints on EMIDEC test set with paper-comparable metrics."""
 from __future__ import annotations
+
 import argparse
 import json
 import sys
 import time
 from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
+
 import config as cfg
 from data.preprocess import EMIDECDataset
+from inference import hard_myo_mask_pathology
 from metrics import binary_metrics, summarize
 from models.dual_decoder import build_model, count_parameters
 from train import collate
-@torch.no_grad()
 
+
+def _is_pathological_case(name: str, gt_mi: np.ndarray) -> bool:
+    """EMIDEC pathological cases are Case_P*; also trust GT MI>0."""
+    if gt_mi.sum() > 0:
+        return True
+    return name.upper().startswith("CASE_P") or name.upper().startswith("P")
+
+
+@torch.no_grad()
 def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool = True):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     ds = EMIDECDataset(cfg.DATASET_DIR / split, augment=False)
     loader = DataLoader(ds, batch_size=1, shuffle=False, collate_fn=collate)
-    model = build_model(variant, filters=tuple(cfg.BASE_FILTERS)).to(device)
+    model = build_model(
+        variant,
+        filters=tuple(cfg.BASE_FILTERS),
+        detach_myo_gate=getattr(cfg, "DETACH_MYO_GATE", True),
+        soft_myo_restrict=True,
+    ).to(device)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model"])
     model.eval()
     n_params = count_parameters(model)
     anat_scores = {"LV": [], "MYO": []}
     path_scores = {"MI": [], "MVO": []}
+    path_only = {"MI": [], "MVO": []}
     multi_scores = {"LV": [], "MYO": [], "Infarct": []}
+    multi_path_only = {"Infarct": []}
     per_case = []
     times = []
+    hard_mask = bool(getattr(cfg, "HARD_MYO_MASK_AT_INFER", True))
     fig_dir = cfg.FIGURES_DIR / f"{variant}_{split}"
     if save_figs:
         fig_dir.mkdir(parents=True, exist_ok=True)
+
     for batch in loader:
         x = batch["image"].to(device)
         name = batch["name"][0]
@@ -44,7 +66,7 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
         if device.type == "cuda":
             torch.cuda.synchronize()
         times.append((time.time() - t0) * 1000)
-        img = batch["image"][0, 0].numpy()  # (D,H,W)
+        img = batch["image"][0, 0].numpy()
         mid = img.shape[0] // 2
         case_row = {"case": name}
         if variant in ("M1", "M2"):
@@ -54,12 +76,24 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
                 m = binary_metrics(pred == cls, gt == cls, spacing=cfg.TARGET_SPACING)
                 multi_scores[key].append(m)
                 case_row[key] = m
+            if (gt == 3).sum() > 0:
+                multi_path_only["Infarct"].append(case_row["Infarct"])
+            case_row["pathological"] = bool((gt == 3).sum() > 0)
             if save_figs:
-                _save_overlay(img[mid], pred[mid], gt[mid], fig_dir / f"{name}.png",
-                              title=f"{variant} {name}", mode="multi")
+                _save_overlay(
+                    img[mid],
+                    pred[mid],
+                    gt[mid],
+                    fig_dir / f"{name}.png",
+                    title=f"{variant} {name}",
+                    mode="multi",
+                )
         else:
             anat = out["anatomy_logits"].argmax(1)[0].cpu().numpy()
-            path = (out["pathology_prob"][0] > 0.5).cpu().numpy()
+            path_prob = out["pathology_prob"]
+            if hard_mask:
+                path_prob = hard_myo_mask_pathology(out["anatomy_logits"], path_prob)
+            path = (path_prob[0] > 0.5).cpu().numpy()
             gt_a = batch["anatomy"][0].numpy()
             gt_p = batch["pathology"][0].numpy()
             for cls, key in [(1, "LV"), (2, "MYO")]:
@@ -70,12 +104,27 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
                 m = binary_metrics(path[c], gt_p[c], spacing=cfg.TARGET_SPACING)
                 path_scores[key].append(m)
                 case_row[key] = m
+            is_path = _is_pathological_case(name, gt_p[0])
+            case_row["pathological"] = is_path
+            if is_path:
+                path_only["MI"].append(case_row["MI"])
+                path_only["MVO"].append(case_row["MVO"])
             if save_figs:
-                _save_dual(img[mid], anat[mid], path[:, mid], gt_a[mid], gt_p[:, mid],
-                           fig_dir / f"{name}.png", title=f"{variant} {name}")
+                _save_dual(
+                    img[mid],
+                    anat[mid],
+                    path[:, mid],
+                    gt_a[mid],
+                    gt_p[:, mid],
+                    fig_dir / f"{name}.png",
+                    title=f"{variant} {name}",
+                )
         per_case.append(case_row)
+
     if variant in ("M1", "M2"):
         summary = {k: summarize(v) for k, v in multi_scores.items()}
+        if multi_path_only["Infarct"]:
+            summary["Infarct_pathological"] = summarize(multi_path_only["Infarct"])
     else:
         summary = {
             "LV": summarize(anat_scores["LV"]),
@@ -83,18 +132,37 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
             "MI": summarize(path_scores["MI"]),
             "MVO": summarize(path_scores["MVO"]),
         }
+        if path_only["MI"]:
+            summary["MI_pathological"] = summarize(path_only["MI"])
+        if path_only["MVO"]:
+            summary["MVO_pathological"] = summarize(path_only["MVO"])
+
     summary["params_M"] = n_params / 1e6
     summary["inference_ms_mean"] = float(np.mean(times))
     summary["inference_ms_std"] = float(np.std(times))
     summary["variant"] = variant
     summary["split"] = split
     summary["checkpoint"] = str(ckpt_path)
+    summary["hard_myo_mask"] = hard_mask
     out_path = cfg.RESULTS_DIR / f"{variant}_{split}_metrics.json"
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps({"summary": summary, "per_case": per_case}, indent=2), encoding="utf-8")
+    out_path.write_text(
+        json.dumps({"summary": summary, "per_case": per_case}, indent=2),
+        encoding="utf-8",
+    )
     print(json.dumps(summary, indent=2))
-    print(f"Saved ? {out_path}")
+    # Explicit human-readable summary so MI vs MI_path are not confused with train "best"
+    mi_all = summary.get("MI", summary.get("Infarct", {})).get("dice", {}).get("mean")
+    mi_path = summary.get("MI_pathological", summary.get("Infarct_pathological", {})).get("dice", {}).get("mean")
+    print("-" * 60)
+    print(f"{variant} [{split}] checkpoint selection metric during train = MI_path (pathological only)")
+    if mi_all is not None:
+        print(f"  MI (all cases, includes FP-on-normal zeros): {mi_all:.4f}")
+    if mi_path is not None:
+        print(f"  MI_path (pathological only; comparable to train 'saved best'): {mi_path:.4f}")
+    print(f"Saved -> {out_path}")
     return summary
+
 
 def _save_overlay(img, pred, gt, path, title, mode="multi"):
     fig, axes = plt.subplots(1, 3, figsize=(12, 4))
@@ -113,8 +181,8 @@ def _save_overlay(img, pred, gt, path, title, mode="multi"):
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
+
 def _save_dual(img, anat_p, path_p, anat_g, path_g, path, title):
-    # path_*: (2, H, W)
     fig, axes = plt.subplots(2, 3, figsize=(12, 8))
     axes[0, 0].imshow(img, cmap="gray")
     axes[0, 0].set_title("LGE")
@@ -145,6 +213,7 @@ def _save_dual(img, anat_p, path_p, anat_g, path_g, path, title):
     fig.savefig(path, dpi=150, bbox_inches="tight")
     plt.close(fig)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--variant", default="M5")
@@ -160,7 +229,10 @@ def main():
             print(f"Skip {v}: missing {ckpt}")
             continue
         table[v] = run_eval(v, ckpt, split=args.split)
-    (cfg.RESULTS_DIR / f"comparison_{args.split}.json").write_text(json.dumps(table, indent=2), encoding="utf-8")
+    (cfg.RESULTS_DIR / f"comparison_{args.split}.json").write_text(
+        json.dumps(table, indent=2), encoding="utf-8"
+    )
+
 
 if __name__ == "__main__":
     main()

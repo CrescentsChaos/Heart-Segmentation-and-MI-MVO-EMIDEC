@@ -1,5 +1,11 @@
-Method,Citation,Year,Architecture,LV Dice,MYO Dice,MI Dice,MVO Dice,Dataset
-nnU-Net,Isensee et al.,2021,Self-configured 3D U-Net,0.941,0.856,0.72,,EMIDEC
-ICPIU-Net,Brahim et al.,2022,Cascaded 3D + VAE prior,0.932,0.895,0.783,,EMIDEC
-2D-3D Cascade,Schwab et al.,2025,Error-correcting 2D-3D cascade CNN,,0.83,0.72,,LGE-CMR / EMIDEC-related
-AFDD-Net,this work,2026,Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency,0.918784295342279,0.7836434593892313,0.36717064875080224,0.09112060334904923,EMIDEC
+Method,Citation,Year,Architecture,LV Dice,MYO Dice,MI Dice,MVO Dice,Dataset,Protocol
+Zhang (cascaded nnU-Net),Zhang et al.,2021,2D-3D cascaded nnU-Net,,0.879,0.712,0.785,EMIDEC,Official test (50 cases)
+ICPIU-Net,Brahim et al.,2022,Cascaded 3D + VAE prior,,0.877,0.734,,EMIDEC,Official test (50 cases)
+ICPIU-Net (5-fold),Brahim et al.,2022,Cascaded 3D + VAE prior,0.932,0.895,0.783,,EMIDEC,5-fold CV (100 cases)
+3D nnU-Net (EMIDEC),nnU-Net baseline,2021,nnU-Net 3D,,0.872,0.688,,EMIDEC,5-fold CV
+2D nnU-Net (EMIDEC),nnU-Net baseline,2021,nnU-Net 2D,,0.851,0.509,,EMIDEC,5-fold CV
+GAN-aug. cascade,Lustermans et al.,2022,Cascaded nnU-Net + cGAN,,0.84,0.72,,EMIDEC,Test / per-slice (see paper)
+CLAIM,Ramzan et al.,2025,Diffusion augmentation + nnU-Net,,,0.635,,EMIDEC,10 held-out cases
+2D-3D Cascade (EcorC),Schwab et al.,2025,Error-correcting 2D-3D cascade CNN,,0.86,0.76,,EMIDEC,5-fold CV (100 cases)
+Expert (inter-observer),Lalande et al.,2020,Human expert ceiling,,0.83,0.69,,EMIDEC,Inter-observer (Data 2020)
+AFDD-Net,this work,2026,Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency,0.9053854373059125,0.7734933804274451,0.32531696086786466,0.2398014440433213,EMIDEC,Stratified test split

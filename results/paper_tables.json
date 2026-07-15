@@ -1,51 +1,173 @@
 {
+  "model_name": "AFDD-Net",
+  "model_full_name": "Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency",
   "ablation_table": [
     {
       "variant": "M1",
-      "status": "missing"
+      "display": "Baseline 3D U-Net",
+      "LV": 0.9154990945904558,
+      "MYO": 0.7275726217683869,
+      "MI": 0.3210411089196191,
+      "MI_path": 0.4494575524874668,
+      "MVO": null,
+      "params_M": 46.579736,
+      "inference_ms": 56.56935373942057
     },
     {
       "variant": "M2",
-      "status": "missing"
+      "display": "AFDD-Net-F",
+      "LV": 0.9048335067071245,
+      "MYO": 0.7298446879130895,
+      "MI": 0.3251263637138227,
+      "MI_path": 0.4551769091993518,
+      "MVO": null,
+      "params_M": 11.521496,
+      "inference_ms": 37.70019213358561
     },
     {
       "variant": "M3",
-      "status": "missing"
+      "display": "AFDD-Net-D",
+      "LV": 0.9069533659129558,
+      "MYO": 0.7582870030689389,
+      "MI": 0.3173532563458492,
+      "MI_path": 0.41255923324960386,
+      "MVO": 0.03760463824650671,
+      "params_M": 16.058893,
+      "inference_ms": 58.106088638305664
     },
     {
       "variant": "M4",
-      "status": "missing"
+      "display": "AFDD-Net-T",
+      "LV": 0.9061546942634694,
+      "MYO": 0.7611440011948499,
+      "MI": 0.3365150763274069,
+      "MI_path": 0.4038180915928883,
+      "MVO": 0.038323901859823546,
+      "params_M": 16.058893,
+      "inference_ms": 70.74602444966634
     },
     {
       "variant": "M5",
-      "status": "missing"
+      "display": "AFDD-Net",
+      "LV": 0.9053854373059125,
+      "MYO": 0.7734933804274451,
+      "MI": 0.32531696086786466,
+      "MI_path": 0.4554437452150105,
+      "MVO": 0.2398014440433213,
+      "params_M": 16.058893,
+      "inference_ms": 59.319051106770836
     }
   ],
   "sota_targets": [
     {
-      "method": "nnU-Net (Isensee et al.)",
+      "method": "Zhang (cascaded nnU-Net)",
+      "citation": "Zhang et al.",
       "year": 2021,
-      "LV": 0.941,
-      "MYO": 0.856,
-      "MI": 0.72,
-      "MVO": null
+      "architecture": "2D-3D cascaded nnU-Net",
+      "LV": null,
+      "MYO": 0.879,
+      "MI": 0.712,
+      "MVO": 0.785,
+      "dataset": "EMIDEC",
+      "protocol": "Official test (50 cases)"
     },
     {
-      "method": "ICPIU-Net (Brahim et al.)",
+      "method": "ICPIU-Net",
+      "citation": "Brahim et al.",
       "year": 2022,
+      "architecture": "Cascaded 3D + VAE prior",
+      "LV": null,
+      "MYO": 0.877,
+      "MI": 0.734,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "Official test (50 cases)"
+    },
+    {
+      "method": "ICPIU-Net (5-fold)",
+      "citation": "Brahim et al.",
+      "year": 2022,
+      "architecture": "Cascaded 3D + VAE prior",
       "LV": 0.932,
       "MYO": 0.895,
       "MI": 0.783,
-      "MVO": null
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "5-fold CV (100 cases)"
     },
     {
-      "method": "Schwab et al.",
+      "method": "3D nnU-Net (EMIDEC)",
+      "citation": "nnU-Net baseline",
+      "year": 2021,
+      "architecture": "nnU-Net 3D",
+      "LV": null,
+      "MYO": 0.872,
+      "MI": 0.688,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "5-fold CV"
+    },
+    {
+      "method": "2D nnU-Net (EMIDEC)",
+      "citation": "nnU-Net baseline",
+      "year": 2021,
+      "architecture": "nnU-Net 2D",
+      "LV": null,
+      "MYO": 0.851,
+      "MI": 0.509,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "5-fold CV"
+    },
+    {
+      "method": "GAN-aug. cascade",
+      "citation": "Lustermans et al.",
+      "year": 2022,
+      "architecture": "Cascaded nnU-Net + cGAN",
+      "LV": null,
+      "MYO": 0.84,
+      "MI": 0.72,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "Test / per-slice (see paper)"
+    },
+    {
+      "method": "CLAIM",
+      "citation": "Ramzan et al.",
       "year": 2025,
+      "architecture": "Diffusion augmentation + nnU-Net",
+      "LV": null,
+      "MYO": null,
+      "MI": 0.635,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "10 held-out cases"
+    },
+    {
+      "method": "2D-3D Cascade (EcorC)",
+      "citation": "Schwab et al.",
+      "year": 2025,
+      "architecture": "Error-correcting 2D-3D cascade CNN",
+      "LV": null,
+      "MYO": 0.86,
+      "MI": 0.76,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "5-fold CV (100 cases)"
+    },
+    {
+      "method": "Expert (inter-observer)",
+      "citation": "Lalande et al.",
+      "year": 2020,
+      "architecture": "Human expert ceiling",
       "LV": null,
       "MYO": 0.83,
-      "MI": 0.72,
-      "MVO": null
+      "MI": 0.69,
+      "MVO": null,
+      "dataset": "EMIDEC",
+      "protocol": "Inter-observer (Data 2020)"
     }
   ],
-  "note": "Target: M5 MI Dice should exceed ICPIU-Net 0.783 for a meaningful SOTA claim."
+  "target_mi_dice": 0.76,
+  "note": "EMIDEC-only SOTA. Target: AFDD-Net MI Dice > 0.76 (Schwab 2025 (EMIDEC best)); stretch > 0.783 (ICPIU-Net 5-fold). MI = all-case nanmean (FP on normals \u2192 0). MI_path = pathological cases only (matches train 'primary MI Dice' / EMIDEC practice)."
 }

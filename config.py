@@ -54,12 +54,24 @@ EPOCHS = 150
 BATCH_SIZE = 2
 NUM_WORKERS = 0
 LAMBDA_FTL = 1.0
-LAMBDA_TOPO = 0.5
-# Focal Tversky (Sec. 4.4.2)
-FTL_ALPHA = 0.7
-FTL_BETA = 0.3
+# M5 collapse root cause was LAMBDA_TOPO=0.5 painting MI≈MYO.
+# Use a small weight + curriculum (see TOPO_WARMUP / TOPO_RAMP).
+LAMBDA_TOPO = 0.05
+TOPO_WARMUP_EPOCHS = 40   # λ_topo = 0 (train like M4 first)
+TOPO_RAMP_EPOCHS = 20     # linear ramp 0 → LAMBDA_TOPO
+USE_GT_MYO_FOR_TOPO = True  # constrain MI inside GT wall (stable)
+# Focal Tversky (Sec. 4.4.2) — slightly less FN-obsessed than 0.7/0.3
+# so topology cannot reward wall-wide MI to chase recall.
+FTL_ALPHA = 0.65
+FTL_BETA = 0.35
 FTL_GAMMA = 0.75
 FTL_EPS = 1e-5
+MI_CHANNEL_WEIGHT = 1.5   # emphasize MI over MVO in FTL
+MVO_CHANNEL_WEIGHT = 0.75
+# Hard-mask pathology by predicted MYO at val/test (SOTA-style MYO-first)
+HARD_MYO_MASK_AT_INFER = True
+# Detach soft MYO before feeding pathology decoder / topo (stops coupled expand)
+DETACH_MYO_GATE = True
 SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)

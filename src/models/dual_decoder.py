@@ -182,9 +182,13 @@ class DualDecoderNet(nn.Module):
         factorized: bool = True,
         use_myo_gate: bool = True,
         myo_class_index: int = 2,
+        detach_myo_gate: bool = True,
+        soft_myo_restrict: bool = True,
     ):
         super().__init__()
         self.myo_class_index = myo_class_index
+        self.detach_myo_gate = detach_myo_gate
+        self.soft_myo_restrict = soft_myo_restrict
         self.encoder = SharedEncoder(in_ch, filters, factorized=factorized)
         f4 = filters[-1]
         bn = f4 * 2
@@ -203,13 +207,20 @@ class DualDecoderNet(nn.Module):
             use_myo_gate=use_myo_gate,
             use_attention=True,
         )
+
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         z, skips = self.encoder(x)
         anat_logits = self.anatomy_decoder(z, skips)
         anat_prob = F.softmax(anat_logits, dim=1)
-        myo_mask = anat_prob[:, self.myo_class_index : self.myo_class_index + 1]  # (B,1,D,H,W) note: our layout is (B,C,H,W,D)
-        path_logits = self.pathology_decoder(z, skips, myo_mask=myo_mask)
+        # Soft MYO probability for gating (B,1,D,H,W)
+        myo_mask = anat_prob[:, self.myo_class_index : self.myo_class_index + 1]
+        gate = myo_mask.detach() if self.detach_myo_gate else myo_mask
+        path_logits = self.pathology_decoder(z, skips, myo_mask=gate)
         path_prob = torch.sigmoid(path_logits)
+        # Soft anatomical restriction: MI/MVO mass must live inside MYO.
+        # Detached so pathology cannot inflate MYO to "legalize" wall-wide MI.
+        if self.soft_myo_restrict:
+            path_prob = path_prob * myo_mask.detach()
         return {
             "anatomy_logits": anat_logits,
             "anatomy_prob": anat_prob,
@@ -245,5 +256,7 @@ def build_model(variant: str, **kwargs) -> nn.Module:
             filters=filters,
             factorized=True,
             use_myo_gate=True,
+            detach_myo_gate=kwargs.get("detach_myo_gate", True),
+            soft_myo_restrict=kwargs.get("soft_myo_restrict", True),
         )
     raise ValueError(f"Unknown variant {variant}. Expected M1-M5.")

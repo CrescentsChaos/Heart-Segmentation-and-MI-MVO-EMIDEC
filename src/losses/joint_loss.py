@@ -1,13 +1,22 @@
 """Losses: Dice+WCE, Focal Tversky, topology consistency, joint objective."""
 from __future__ import annotations
+
 from typing import Dict, Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class DiceCELoss(nn.Module):
     """Generalised Dice + class-weighted CE (anatomy head, Sec. 4.4.1)."""
-    def __init__(self, num_classes: int, class_weights: Optional[torch.Tensor] = None, smooth: float = 1e-5):
+
+    def __init__(
+        self,
+        num_classes: int,
+        class_weights: Optional[torch.Tensor] = None,
+        smooth: float = 1e-5,
+    ):
         super().__init__()
         self.num_classes = num_classes
         self.smooth = smooth
@@ -15,7 +24,7 @@ class DiceCELoss(nn.Module):
             "class_weights",
             class_weights if class_weights is not None else torch.ones(num_classes),
         )
-        self.ce = None  # built in forward to stay on correct device
+
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         w = self.class_weights.to(logits.device, dtype=logits.dtype)
         ce = F.cross_entropy(logits, targets, weight=w)
@@ -27,72 +36,145 @@ class DiceCELoss(nn.Module):
         dice = (2.0 * inter + self.smooth) / (denom + self.smooth)
         return ce + (1.0 - dice.mean())
 
+
 class FocalTverskyLoss(nn.Module):
     """Focal Tversky on multi-label sigmoid outputs (Sec. 4.4.2)."""
-    def __init__(self, alpha: float = 0.7, beta: float = 0.3, gamma: float = 0.75, eps: float = 1e-5):
+
+    def __init__(
+        self,
+        alpha: float = 0.7,
+        beta: float = 0.3,
+        gamma: float = 0.75,
+        eps: float = 1e-5,
+        channel_weights: Optional[torch.Tensor] = None,
+    ):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
         self.gamma = gamma
         self.eps = eps
+        if channel_weights is None:
+            self.channel_weights = None
+        else:
+            self.register_buffer("channel_weights", channel_weights.float())
+
     def forward(self, probs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        # probs, targets: (B, C, H, W, D) in [0,1]
+        # probs, targets: (B, C, D, H, W) in [0,1]
         dims = (0, 2, 3, 4)
         tp = torch.sum(probs * targets, dim=dims)
         fn = torch.sum((1.0 - probs) * targets, dim=dims)
         fp = torch.sum(probs * (1.0 - targets), dim=dims)
         ti = (tp + self.eps) / (tp + self.alpha * fn + self.beta * fp + self.eps)
-        return torch.mean((1.0 - ti) ** self.gamma)
+        loss_c = (1.0 - ti) ** self.gamma
+        if self.channel_weights is not None:
+            w = self.channel_weights.to(loss_c.device)
+            return torch.sum(w * loss_c) / torch.clamp(w.sum(), min=1e-6)
+        return torch.mean(loss_c)
+
 
 class TopologyConsistencyLoss(nn.Module):
-    """L_topo: penalise pathology probability outside predicted MYO (Sec. 4.4.3)."""
+    """
+    L_topo: penalise pathology probability outside the myocardial wall.
+
+    Critical fix vs original: ALWAYS use detached gate (predicted soft MYO
+    or GT wall). Without detach, L_topo = mean(path * (1-myo)) is trivially
+    minimized by expanding path ≈ myo (paint whole wall as MI), which caused
+    M5 MI Dice collapse (0.13 vs M4 0.36).
+    """
+
     def forward(self, path_prob: torch.Tensor, myo_mask: torch.Tensor) -> torch.Tensor:
-        # path_prob: (B, C, H, W, D); myo_mask: (B, 1, H, W, D)
-        outside = 1.0 - myo_mask
-        # Average over pathology channels and voxels
+        # path_prob: (B, C, D, H, W); myo_mask: (B, 1, D, H, W) in [0,1]
+        myo = myo_mask.detach()
+        outside = 1.0 - myo
+        # Emphasize MI channel (index 0) more than MVO — MI is the thesis target
+        if path_prob.shape[1] >= 2:
+            w = path_prob.new_tensor([1.5, 0.5]).view(1, -1, 1, 1, 1)
+            return torch.mean(w * path_prob * outside)
         return torch.mean(path_prob * outside)
+
 
 class JointLoss(nn.Module):
     """
-    L_total = L_anat + ?1 * L_FTL + ?2 * L_topo   (Sec. 4.4.4)
+    L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo   (Sec. 4.4.4)
+
     For M1/M2 (single decoder): Dice+WCE on 4-class multiclass only.
-    For M3: Dice+WCE anatomy + Dice+WCE-style pathology (use FTL with ??1, ?=?=0.5 via flag)
-    For M4/M5: FTL on pathology; M5 also enables L_topo.
+    For M3: anatomy + soft Dice-like pathology (α=β=0.5, γ=1).
+    For M4/M5: FTL on pathology; M5 enables L_topo (curriculum-controlled).
     """
+
     def __init__(
         self,
         variant: str,
         num_anatomy: int = 3,
         anatomy_weights: Optional[torch.Tensor] = None,
         lambda_ftl: float = 1.0,
-        lambda_topo: float = 0.5,
-        ftl_alpha: float = 0.7,
-        ftl_beta: float = 0.3,
+        lambda_topo: float = 0.05,
+        ftl_alpha: float = 0.65,
+        ftl_beta: float = 0.35,
         ftl_gamma: float = 0.75,
+        use_gt_myo_for_topo: bool = True,
+        mi_channel_weight: float = 1.5,
+        mvo_channel_weight: float = 0.75,
     ):
         super().__init__()
         self.variant = variant.upper()
         self.lambda_ftl = lambda_ftl
-        self.lambda_topo = lambda_topo if self.variant == "M5" else 0.0
+        self.base_lambda_topo = float(lambda_topo) if self.variant == "M5" else 0.0
+        self.lambda_topo = self.base_lambda_topo
+        self.use_gt_myo_for_topo = use_gt_myo_for_topo
         self.anat_loss = DiceCELoss(num_anatomy, anatomy_weights)
-        self.multi_loss = DiceCELoss(4, torch.tensor([0.1, 1.0, 1.0, 2.0]))
-        if self.variant in ("M3",):
-            # Pathology with standard Tversky (?=?=0.5, ?=1) ? Dice soft
-            self.path_loss = FocalTverskyLoss(alpha=0.5, beta=0.5, gamma=1.0)
+        self.multi_loss = DiceCELoss(4, torch.tensor([0.1, 1.0, 1.0, 2.5]))
+        ch_w = torch.tensor([mi_channel_weight, mvo_channel_weight], dtype=torch.float32)
+        if self.variant == "M3":
+            self.path_loss = FocalTverskyLoss(
+                alpha=0.5, beta=0.5, gamma=1.0, channel_weights=ch_w
+            )
         else:
-            self.path_loss = FocalTverskyLoss(alpha=ftl_alpha, beta=ftl_beta, gamma=ftl_gamma)
+            self.path_loss = FocalTverskyLoss(
+                alpha=ftl_alpha,
+                beta=ftl_beta,
+                gamma=ftl_gamma,
+                channel_weights=ch_w,
+            )
         self.topo_loss = TopologyConsistencyLoss()
-    def forward(self, outputs: Dict[str, torch.Tensor], batch: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+
+    def set_lambda_topo(self, value: float) -> None:
+        """Curriculum schedule: keep at 0 during warmup, then ramp."""
+        if self.variant != "M5":
+            self.lambda_topo = 0.0
+            return
+        self.lambda_topo = float(max(0.0, value))
+
+    def _gt_myo_mask(self, anatomy: torch.Tensor) -> torch.Tensor:
+        # anatomy: (B, D, H, W) with MYO wall = class 2 (healthy+MI+MVO)
+        return (anatomy == 2).float().unsqueeze(1)
+
+    def forward(
+        self,
+        outputs: Dict[str, torch.Tensor],
+        batch: Dict[str, torch.Tensor],
+    ) -> Dict[str, torch.Tensor]:
         if self.variant in ("M1", "M2"):
             loss = self.multi_loss(outputs["multiclass_logits"], batch["multiclass"])
             return {"loss": loss, "L_multi": loss.detach()}
+
         L_anat = self.anat_loss(outputs["anatomy_logits"], batch["anatomy"])
         L_ftl = self.path_loss(outputs["pathology_prob"], batch["pathology"])
-        L_topo = self.topo_loss(outputs["pathology_prob"], outputs["myo_mask"])
+
+        if self.lambda_topo > 0:
+            if self.use_gt_myo_for_topo:
+                myo_for_topo = self._gt_myo_mask(batch["anatomy"])
+            else:
+                myo_for_topo = outputs["myo_mask"]
+            L_topo = self.topo_loss(outputs["pathology_prob"], myo_for_topo)
+        else:
+            L_topo = outputs["pathology_prob"].new_zeros(())
+
         total = L_anat + self.lambda_ftl * L_ftl + self.lambda_topo * L_topo
         return {
             "loss": total,
             "L_anat": L_anat.detach(),
             "L_ftl": L_ftl.detach(),
-            "L_topo": L_topo.detach(),
+            "L_topo": L_topo.detach() if torch.is_tensor(L_topo) else L_topo,
+            "lambda_topo": outputs["pathology_prob"].new_tensor(self.lambda_topo),
         }

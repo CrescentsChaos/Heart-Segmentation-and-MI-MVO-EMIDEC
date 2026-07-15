@@ -1,21 +1,22 @@
 {
   "case": "Case_P087",
-  "model": "M1",
-  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M1_best.pth",
+  "model": "AFDD-Net",
+  "variant": "M5",
+  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M5_best.pth",
   "source_npz": "E:\\Thesis Dataset 3\\Dataset\\test\\Case_P087.npz",
   "dysfunction_stats": {
     "voxel_counts": {
-      "LV_cavity": 1973,
-      "MYO": 2865,
-      "LV_total": 4838,
-      "MI": 64,
+      "LV_cavity": 1875,
+      "MYO": 3091,
+      "LV_total": 4966,
+      "MI": 191,
       "MVO": 0,
-      "dysfunction_MI_or_MVO": 64
+      "dysfunction_MI_or_MVO": 191
     },
     "percent_of_MYO": {
-      "MI": 2.23,
+      "MI": 6.18,
       "MVO": 0.0,
-      "dysfunction": 2.23
+      "dysfunction": 6.18
     },
     "percent_of_LV_cavity": {
       "MI": 0.0,
@@ -23,9 +24,9 @@
       "dysfunction": 0.0
     },
     "percent_of_LV_total_cavity_plus_MYO": {
-      "MI": 1.32,
+      "MI": 3.85,
       "MVO": 0.0,
-      "dysfunction": 1.32
+      "dysfunction": 3.85
     },
     "MVO_as_percent_of_MI": 0.0
   },
