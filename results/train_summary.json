@@ -1,7 +1,32 @@
 {
-  "M5": {
-    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_best.pth",
-    "best_mi_dice": 0.4915064189290879,
-    "params": 16058893
+  "UNET": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_best.pth",
+    "best_mi_dice": 0.21433304414099594,
+    "params": 19220713,
+    "epochs": 80
+  },
+  "SEGRESNET": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_best.pth",
+    "best_mi_dice": 0.39099563080749006,
+    "params": 4700948,
+    "epochs": 80
+  },
+  "SWINUNETR": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_best.pth",
+    "best_mi_dice": 0.3396704688935754,
+    "params": 15703054,
+    "epochs": 80
+  },
+  "NNUNET": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_best.pth",
+    "best_mi_dice": 0.29414622981035204,
+    "params": 16663556,
+    "epochs": 80
+  },
+  "DYNUNET": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_best.pth",
+    "best_mi_dice": 0.2811635316867157,
+    "params": 22572004,
+    "epochs": 80
   }
 }

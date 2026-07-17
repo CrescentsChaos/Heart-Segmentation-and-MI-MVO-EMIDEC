@@ -76,6 +76,11 @@ SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
 DEFAULT_VARIANT = "M5"
+# External MONAI baselines (UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET)
+BASELINE_EPOCHS = 80
+# SwinUNETR is memory-heavy; default batch size for baselines if overridden via CLI
+BASELINE_BATCH_SIZE = 2
+SWINUNETR_BATCH_SIZE = 1
 
 # Official model identity (paper / thesis comparison)
 MODEL_NAME = "AFDD-Net"

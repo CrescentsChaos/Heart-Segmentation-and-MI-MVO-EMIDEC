@@ -1,4 +1,4 @@
-"""Train ablation variants M1-M5 on EMIDEC (revised methodology)."""
+"""Train AFDD-Net ablation (M1-M5) and MONAI baselines on EMIDEC."""
 from __future__ import annotations
 
 import argparse
@@ -22,7 +22,13 @@ from data.preprocess import EMIDECDataset
 from inference import hard_myo_mask_pathology
 from losses.joint_loss import JointLoss
 from metrics import binary_metrics, summarize
-from model_identity import MODEL_NAME, VARIANT_SHORT
+from model_identity import (
+    ABLATION_VARIANTS,
+    BASELINE_VARIANTS,
+    MODEL_NAME,
+    VARIANT_SHORT,
+    is_multiclass_variant,
+)
 from models.dual_decoder import build_model, count_parameters
 
 
@@ -76,7 +82,7 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
     for batch in loader:
         x = batch["image"].to(device)
         out = model(x)
-        if variant in ("M1", "M2"):
+        if is_multiclass_variant(variant):
             pred = out["multiclass_logits"].argmax(1).cpu().numpy()
             gt = batch["multiclass"].numpy()
             for b in range(pred.shape[0]):
@@ -103,7 +109,7 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
                 # Pathological-only: GT has any MI voxels
                 if gt_p[b, 0].sum() > 0:
                     path_only_mi.append(mi_m)
-    if variant in ("M1", "M2"):
+    if is_multiclass_variant(variant):
         return {k: summarize(v) for k, v in multi_scores.items()}
     out_m = {
         "LV": summarize(anat_scores["LV"]),
@@ -121,9 +127,9 @@ def primary_score(metrics: dict, variant: str) -> float:
     Checkpoint selection: prefer pathological-only MI Dice when available
     (matches EMIDEC reporting practice; avoids FP-on-normal zeros).
     """
-    if variant not in ("M1", "M2") and "MI_pathological" in metrics:
+    if not is_multiclass_variant(variant) and "MI_pathological" in metrics:
         return float(metrics["MI_pathological"]["dice"]["mean"])
-    key = "Infarct" if variant in ("M1", "M2") else "MI"
+    key = "Infarct" if is_multiclass_variant(variant) else "MI"
     if key not in metrics or "dice" not in metrics[key]:
         return -1.0
     return float(metrics[key]["dice"]["mean"])
@@ -145,14 +151,25 @@ def _maybe_warm_start(model, variant: str, init_from: str | None, device):
     )
 
 
+def _default_batch_size(variant: str, cli_batch: int | None) -> int:
+    if cli_batch is not None:
+        return cli_batch
+    if variant == "SWINUNETR":
+        return int(getattr(cfg, "SWINUNETR_BATCH_SIZE", 1))
+    if variant in BASELINE_VARIANTS:
+        return int(getattr(cfg, "BASELINE_BATCH_SIZE", cfg.BATCH_SIZE))
+    return int(cfg.BATCH_SIZE)
+
+
 def train_variant(
     variant: str,
     epochs: int,
-    batch_size: int,
+    batch_size: int | None,
     device: torch.device,
     init_from: str | None = None,
 ):
     variant = variant.upper()
+    batch_size = _default_batch_size(variant, batch_size)
     print(f"\n{'=' * 70}\nTraining {variant} ({VARIANT_SHORT.get(variant, variant)}) | {MODEL_NAME}\n{'=' * 70}")
     train_ds = EMIDECDataset(cfg.DATASET_DIR / "train", augment=True)
     val_ds = EMIDECDataset(cfg.DATASET_DIR / "val", augment=False)
@@ -175,7 +192,7 @@ def train_variant(
     _maybe_warm_start(model, variant, init_from, device)
 
     n_params = count_parameters(model)
-    print(f"Parameters: {n_params / 1e6:.3f} M")
+    print(f"Parameters: {n_params / 1e6:.3f} M  |  batch_size={batch_size}")
     criterion = JointLoss(
         variant=variant,
         num_anatomy=cfg.NUM_ANATOMY_CLASSES,
@@ -233,7 +250,7 @@ def train_variant(
             "sec": time.time() - t0,
         }
         history.append(row)
-        if variant in ("M1", "M2"):
+        if is_multiclass_variant(variant):
             msg = (
                 f"[{variant}] ep {epoch:03d}/{epochs}  loss={row['loss']:.4f}  "
                 f"LV={val_metrics['LV']['dice']['mean']:.3f}  "
@@ -275,11 +292,29 @@ def train_variant(
     return best_path, best_mi, n_params
 
 
+def _resolve_variants(spec: str) -> list[str]:
+    s = spec.strip().lower()
+    if s == "all":
+        return list(ABLATION_VARIANTS)
+    if s in ("baselines", "baseline"):
+        return list(BASELINE_VARIANTS)
+    if s == "everything":
+        return list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS)
+    return [v.strip().upper() for v in spec.split(",") if v.strip()]
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--variant", default="M5", help="M1|M2|M3|M4|M5 or all")
-    parser.add_argument("--epochs", type=int, default=cfg.EPOCHS)
-    parser.add_argument("--batch-size", type=int, default=cfg.BATCH_SIZE)
+    parser.add_argument(
+        "--variant",
+        default="M5",
+        help="M1-M5, UNET|SEGRESNET|SWINUNETR|NNUNET|DYNUNET, "
+        "comma-list, 'all' (ablation), 'baselines', or 'everything'",
+    )
+    parser.add_argument("--epochs", type=int, default=None,
+                        help="Epochs (default: config.EPOCHS; baselines often use 80)")
+    parser.add_argument("--batch-size", type=int, default=None,
+                        help="Override batch size (SwinUNETR defaults to 1)")
     parser.add_argument(
         "--init-from",
         default=None,
@@ -295,17 +330,21 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Model family: {MODEL_NAME}")
     print(f"Device: {device}")
-    if args.variant.lower() == "all":
-        variants = ["M1", "M2", "M3", "M4", "M5"]
-    else:
-        variants = [v.strip().upper() for v in args.variant.split(",")]
+    variants = _resolve_variants(args.variant)
     summary = {}
     for v in variants:
+        # Default epochs: baselines -> BASELINE_EPOCHS (80), else EPOCHS
+        if args.epochs is not None:
+            epochs = args.epochs
+        elif v in BASELINE_VARIANTS:
+            epochs = int(getattr(cfg, "BASELINE_EPOCHS", 80))
+        else:
+            epochs = int(cfg.EPOCHS)
         init_from = None if args.no_warm_start else args.init_from
         path, score, n_params = train_variant(
-            v, args.epochs, args.batch_size, device, init_from=init_from
+            v, epochs, args.batch_size, device, init_from=init_from
         )
-        summary[v] = {"best_ckpt": str(path), "best_mi_dice": score, "params": n_params}
+        summary[v] = {"best_ckpt": str(path), "best_mi_dice": score, "params": n_params, "epochs": epochs}
     sum_path = cfg.RESULTS_DIR / "train_summary.json"
     sum_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(f"\nSummary -> {sum_path}")

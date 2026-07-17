@@ -58,6 +58,63 @@
       "inference_ms": 59.319051106770836
     }
   ],
+  "baseline_table": [
+    {
+      "variant": "UNET",
+      "display": "UNet",
+      "LV": 0.891096195678254,
+      "MYO": 0.6842405371302286,
+      "MI": 0.26586050696257685,
+      "MI_path": 0.34561865905134986,
+      "MVO": null,
+      "params_M": 19.220713,
+      "inference_ms": 18.16412607828776
+    },
+    {
+      "variant": "SEGRESNET",
+      "display": "SegResNet",
+      "LV": 0.9016011578682643,
+      "MYO": 0.6804857718671158,
+      "MI": 0.36484782561957413,
+      "MI_path": 0.40133260818153155,
+      "MVO": null,
+      "params_M": 4.700948,
+      "inference_ms": 54.37715848286947
+    },
+    {
+      "variant": "SWINUNETR",
+      "display": "SwinUNETR",
+      "LV": 0.9106248300255694,
+      "MYO": 0.7260526786946978,
+      "MI": 0.3725202685867674,
+      "MI_path": 0.5215283760214744,
+      "MVO": null,
+      "params_M": 15.703054,
+      "inference_ms": 102.96812057495117
+    },
+    {
+      "variant": "NNUNET",
+      "display": "nnU-Net",
+      "LV": 0.9040024228098091,
+      "MYO": 0.7111204931431876,
+      "MI": 0.3511203111202014,
+      "MI_path": 0.45645640445626184,
+      "MVO": null,
+      "params_M": 16.663556,
+      "inference_ms": 45.887978871663414
+    },
+    {
+      "variant": "DYNUNET",
+      "display": "DynUNet",
+      "LV": 0.906514558279204,
+      "MYO": 0.6991697615994698,
+      "MI": 0.3357436086044333,
+      "MI_path": 0.43646669118576326,
+      "MVO": null,
+      "params_M": 22.572004,
+      "inference_ms": 74.80792999267578
+    }
+  ],
   "sota_targets": [
     {
       "method": "Zhang (cascaded nnU-Net)",
@@ -169,5 +226,5 @@
     }
   ],
   "target_mi_dice": 0.76,
-  "note": "EMIDEC-only SOTA. Target: AFDD-Net MI Dice > 0.76 (Schwab 2025 (EMIDEC best)); stretch > 0.783 (ICPIU-Net 5-fold). MI = all-case nanmean (FP on normals \u2192 0). MI_path = pathological cases only (matches train 'primary MI Dice' / EMIDEC practice)."
+  "note": "EMIDEC-only SOTA. Target: AFDD-Net MI Dice > 0.76 (Schwab 2025 (EMIDEC best)); stretch > 0.783 (ICPIU-Net 5-fold). MI = all-case nanmean (FP on normals \u2192 0). MI_path = pathological cases only (matches train 'primary MI Dice' / EMIDEC practice). Baselines are 4-class multiclass (Infarct = MI+MVO)."
 }

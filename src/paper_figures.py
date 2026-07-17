@@ -25,6 +25,8 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 import config as cfg
 from model_identity import (
+    ABLATION_VARIANTS,
+    BASELINE_VARIANTS,
     MODEL_CITE,
     MODEL_FULL_NAME,
     MODEL_NAME,
@@ -34,6 +36,7 @@ from model_identity import (
     TARGET_MI_DICE_LABEL,
     VARIANT_NAMES,
     VARIANT_SHORT,
+    is_multiclass_variant,
 )
 # Style
 plt.rcParams.update(
@@ -53,6 +56,11 @@ PALETTE = {
     "M3": "#54A24B",
     "M4": "#E45756",
     "M5": "#B279A2",
+    "UNET": "#4C78A8",
+    "SEGRESNET": "#72B7B2",
+    "SWINUNETR": "#F58518",
+    "NNUNET": "#E45756",
+    "DYNUNET": "#54A24B",
     "sota": "#72B7B2",
     "ours": "#B279A2",
 }
@@ -65,7 +73,7 @@ def _ensure_dirs():
     return fig, res
 
 def _dice_key(variant: str) -> str:
-    return "Infarct" if variant in ("M1", "M2") else "MI"
+    return "Infarct" if is_multiclass_variant(variant) else "MI"
 
 def load_history(variant: str) -> Optional[List[Dict]]:
     path = cfg.RESULTS_DIR / f"{variant}_history.json"
@@ -109,13 +117,13 @@ def plot_training_curves(variant: str, history: List[Dict], out_dir: Path):
     axes[0, 0].set_xlabel("Epoch")
     axes[0, 0].set_ylabel("Loss")
     for region, label in [("LV", "LV"), ("MYO", "MYO"), (mi_key, "MI/Infarct")]:
-        if variant not in ("M1", "M2") and region == "MVO":
+        if not is_multiclass_variant(variant) and region == "MVO":
             continue
         y = series(region, "dice")
         if np.all(np.isnan(y)):
             continue
         axes[0, 1].plot(epochs, y, lw=2, label=label)
-    if variant not in ("M1", "M2"):
+    if not is_multiclass_variant(variant):
         y = series("MVO", "dice")
         if not np.all(np.isnan(y)):
             axes[0, 1].plot(epochs, y, lw=2, label="MVO", ls="--")
@@ -183,11 +191,12 @@ def plot_all_variants_overlay(histories: Dict[str, List[Dict]], out_dir: Path):
 
 def collect_ablation_rows(split: str = "test") -> List[Dict[str, Any]]:
     rows = []
-    for v in ["M1", "M2", "M3", "M4", "M5"]:
+    for v in list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS):
         s = load_test_summary(v, split)
         if s is None:
             continue
         mi_key = _dice_key(v)
+        multi = is_multiclass_variant(v)
         rows.append(
             {
                 "variant": v,
@@ -198,10 +207,10 @@ def collect_ablation_rows(split: str = "test") -> List[Dict[str, Any]]:
                 "MI_dice": _metric(s, mi_key, "dice"),
                 "MI_path_dice": _metric(
                     s,
-                    "Infarct_pathological" if v in ("M1", "M2") else "MI_pathological",
+                    "Infarct_pathological" if multi else "MI_pathological",
                     "dice",
                 ),
-                "MVO_dice": _metric(s, "MVO", "dice") if v not in ("M1", "M2") else None,
+                "MVO_dice": None if multi else _metric(s, "MVO", "dice"),
                 "LV_hd95": _metric(s, "LV", "hd95"),
                 "MYO_hd95": _metric(s, "MYO", "hd95"),
                 "MI_hd95": _metric(s, mi_key, "hd95"),
@@ -613,13 +622,37 @@ def generate_all(split: str = "test") -> Dict[str, Any]:
     fig_dir, res_dir = _ensure_dirs()
     saved = []
     histories = {}
-    for v in ["M1", "M2", "M3", "M4", "M5"]:
+    for v in list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS):
         h = load_history(v)
         if h:
             histories[v] = h
             saved.append(str(plot_training_curves(v, h, fig_dir)))
     if histories:
-        saved.append(str(plot_all_variants_overlay(histories, fig_dir)))
+        # Ablation overlay (M1-M5 only) + separate baseline overlay when present
+        ab_hist = {k: v for k, v in histories.items() if k in ABLATION_VARIANTS}
+        if ab_hist:
+            saved.append(str(plot_all_variants_overlay(ab_hist, fig_dir)))
+        bl_hist = {k: v for k, v in histories.items() if k in BASELINE_VARIANTS}
+        if bl_hist:
+            fig, ax = plt.subplots(figsize=(10, 5))
+            for v, hist in bl_hist.items():
+                key = _dice_key(v)
+                epochs = [h["epoch"] for h in hist]
+                y = []
+                for h in hist:
+                    m = h.get("val", {}).get(key, {}).get("dice", {})
+                    y.append(m.get("mean", np.nan) if isinstance(m, dict) else np.nan)
+                ax.plot(epochs, y, lw=2, color=PALETTE.get(v, None), label=VARIANT_SHORT[v])
+            ax.set_ylim(0, 1)
+            ax.set_xlabel("Epoch")
+            ax.set_ylabel("Validation Infarct Dice")
+            ax.set_title("External baselines - infarct Dice learning curves")
+            ax.legend(fontsize=9)
+            fig.tight_layout()
+            bp = fig_dir / "baseline_learning_curves_MI.png"
+            fig.savefig(bp, dpi=200, bbox_inches="tight")
+            plt.close(fig)
+            saved.append(str(bp))
     rows = collect_ablation_rows(split)
     if rows:
         saved.append(str(plot_grouped_bars(

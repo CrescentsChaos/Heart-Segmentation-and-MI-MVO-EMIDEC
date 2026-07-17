@@ -240,6 +240,9 @@ def build_model(variant: str, **kwargs) -> nn.Module:
       M3 - + dual decoder with MYO soft gating (Dice+WCE both heads)
       M4 - + Focal Tversky on pathology (loss-side; architecture = M3)
       M5 - + topology consistency loss (loss-side; architecture = M3)
+
+    External baselines (MONAI, 4-class multiclass):
+      UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET
     """
     variant = variant.upper()
     filters = kwargs.get("filters", (32, 64, 128, 256))
@@ -259,4 +262,11 @@ def build_model(variant: str, **kwargs) -> nn.Module:
             detach_myo_gate=kwargs.get("detach_myo_gate", True),
             soft_myo_restrict=kwargs.get("soft_myo_restrict", True),
         )
-    raise ValueError(f"Unknown variant {variant}. Expected M1-M5.")
+    from .baselines import BASELINE_BUILDERS, build_baseline
+
+    if variant in BASELINE_BUILDERS:
+        return build_baseline(variant, in_ch=in_ch)
+    raise ValueError(
+        f"Unknown variant {variant}. Expected M1-M5 or "
+        f"{', '.join(BASELINE_BUILDERS)}."
+    )

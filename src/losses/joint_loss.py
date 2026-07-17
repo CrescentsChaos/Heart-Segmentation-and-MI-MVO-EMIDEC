@@ -7,6 +7,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from model_identity import is_multiclass_variant
+
 
 class DiceCELoss(nn.Module):
     """Generalised Dice + class-weighted CE (anatomy head, Sec. 4.4.1)."""
@@ -97,7 +99,8 @@ class JointLoss(nn.Module):
     """
     L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo   (Sec. 4.4.4)
 
-    For M1/M2 (single decoder): Dice+WCE on 4-class multiclass only.
+    For M1/M2 and external baselines (UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET):
+        Dice+WCE on 4-class multiclass only.
     For M3: anatomy + soft Dice-like pathology (α=β=0.5, γ=1).
     For M4/M5: FTL on pathology; M5 enables L_topo (curriculum-controlled).
     """
@@ -154,7 +157,7 @@ class JointLoss(nn.Module):
         outputs: Dict[str, torch.Tensor],
         batch: Dict[str, torch.Tensor],
     ) -> Dict[str, torch.Tensor]:
-        if self.variant in ("M1", "M2"):
+        if is_multiclass_variant(self.variant):
             loss = self.multi_loss(outputs["multiclass_logits"], batch["multiclass"])
             return {"loss": loss, "L_multi": loss.detach()}
 

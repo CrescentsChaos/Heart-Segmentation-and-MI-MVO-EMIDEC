@@ -18,6 +18,12 @@ VARIANT_NAMES = {
     "M3": f"{MODEL_NAME}-D (dual decoder)",
     "M4": f"{MODEL_NAME}-T (Focal Tversky)",
     "M5": f"{MODEL_NAME} (full proposed)",
+    # External baselines (MONAI)
+    "UNET": "3D UNet (MONAI)",
+    "SEGRESNET": "SegResNet (MONAI)",
+    "SWINUNETR": "SwinUNETR (MONAI)",
+    "NNUNET": "nnU-Net-style DynUNet",
+    "DYNUNET": "DynUNet (MONAI)",
 }
 
 VARIANT_SHORT = {
@@ -26,7 +32,23 @@ VARIANT_SHORT = {
     "M3": f"{MODEL_NAME}-D",
     "M4": f"{MODEL_NAME}-T",
     "M5": MODEL_NAME,
+    "UNET": "UNet",
+    "SEGRESNET": "SegResNet",
+    "SWINUNETR": "SwinUNETR",
+    "NNUNET": "nnU-Net",
+    "DYNUNET": "DynUNet",
 }
+
+ABLATION_VARIANTS = ["M1", "M2", "M3", "M4", "M5"]
+BASELINE_VARIANTS = ["UNET", "SEGRESNET", "SWINUNETR", "NNUNET", "DYNUNET"]
+ALL_VARIANTS = ABLATION_VARIANTS + BASELINE_VARIANTS
+
+# Single-decoder 4-class (BG/LV/MYO/Infarct) — shared train/eval path
+MULTICLASS_VARIANTS = frozenset({"M1", "M2", *BASELINE_VARIANTS})
+
+
+def is_multiclass_variant(variant: str) -> bool:
+    return variant.upper() in MULTICLASS_VARIANTS
 
 # Verified EMIDEC-only MI/scar Dice comparators (methodology Table 4.7).
 # Removed Isensee et al. 2021 nnU-Net (private LGE cohort, not EMIDEC) and

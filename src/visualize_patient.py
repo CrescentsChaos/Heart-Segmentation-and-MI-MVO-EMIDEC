@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 import config as cfg
-from model_identity import MODEL_NAME, VARIANT_SHORT
+from model_identity import MODEL_NAME, VARIANT_SHORT, is_multiclass_variant
 from models.dual_decoder import build_model
 
 # ---------------------------- Case resolution --------------------------------
@@ -114,15 +114,15 @@ def predict_case(case_id: str, variant: str, ckpt: Path, device: torch.device):
     model.load_state_dict(state["model"])
     model.eval()
     out = model(x)
-    if variant in ("M1", "M2"):
+    if is_multiclass_variant(variant):
         multi = out["multiclass_logits"].argmax(1)[0].cpu().numpy()  # (D,H,W)
         anatomy = np.zeros_like(multi, dtype=np.uint8)
         anatomy[multi == 1] = 1  # LV
-        anatomy[multi == 2] = 2  # MYO (healthy only in M1/M2)
-        anatomy[multi == 3] = 2  # infarct sits in wall ? count as MYO for %
+        anatomy[multi == 2] = 2  # MYO (healthy only in multiclass)
+        anatomy[multi == 3] = 2  # infarct sits in wall - count as MYO for %
         pathology = np.zeros((2,) + multi.shape, dtype=np.uint8)
         pathology[0] = (multi == 3).astype(np.uint8)  # merged infarct as MI
-        # MVO not separable in M1/M2
+        # MVO not separable in multiclass baselines
     else:
         anatomy = out["anatomy_logits"].argmax(1)[0].cpu().numpy().astype(np.uint8)
         pathology = (out["pathology_prob"][0] > 0.5).cpu().numpy().astype(np.uint8)

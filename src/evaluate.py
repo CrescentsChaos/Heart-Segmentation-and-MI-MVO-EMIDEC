@@ -20,6 +20,7 @@ import config as cfg
 from data.preprocess import EMIDECDataset
 from inference import hard_myo_mask_pathology
 from metrics import binary_metrics, summarize
+from model_identity import ABLATION_VARIANTS, BASELINE_VARIANTS, is_multiclass_variant
 from models.dual_decoder import build_model, count_parameters
 from train import collate
 
@@ -69,7 +70,7 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
         img = batch["image"][0, 0].numpy()
         mid = img.shape[0] // 2
         case_row = {"case": name}
-        if variant in ("M1", "M2"):
+        if is_multiclass_variant(variant):
             pred = out["multiclass_logits"].argmax(1)[0].cpu().numpy()
             gt = batch["multiclass"][0].numpy()
             for cls, key in [(1, "LV"), (2, "MYO"), (3, "Infarct")]:
@@ -121,7 +122,7 @@ def run_eval(variant: str, ckpt_path: Path, split: str = "test", save_figs: bool
                 )
         per_case.append(case_row)
 
-    if variant in ("M1", "M2"):
+    if is_multiclass_variant(variant):
         summary = {k: summarize(v) for k, v in multi_scores.items()}
         if multi_path_only["Infarct"]:
             summary["Infarct_pathological"] = summarize(multi_path_only["Infarct"])
@@ -216,12 +217,24 @@ def _save_dual(img, anat_p, path_p, anat_g, path_g, path, title):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--variant", default="M5")
+    parser.add_argument(
+        "--variant",
+        default="M5",
+        help="M1-M5 / UNET|SEGRESNET|SWINUNETR|NNUNET|DYNUNET / comma-list",
+    )
     parser.add_argument("--ckpt", default=None)
     parser.add_argument("--split", default="test")
-    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--all", action="store_true", help="Evaluate ablation M1-M5")
+    parser.add_argument("--baselines", action="store_true", help="Evaluate MONAI baselines")
     args = parser.parse_args()
-    variants = ["M1", "M2", "M3", "M4", "M5"] if args.all else [args.variant.upper()]
+    if args.all and args.baselines:
+        variants = list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS)
+    elif args.all:
+        variants = list(ABLATION_VARIANTS)
+    elif args.baselines:
+        variants = list(BASELINE_VARIANTS)
+    else:
+        variants = [v.strip().upper() for v in args.variant.split(",") if v.strip()]
     table = {}
     for v in variants:
         ckpt = Path(args.ckpt) if args.ckpt else cfg.CHECKPOINT_DIR / f"{v}_best.pth"
