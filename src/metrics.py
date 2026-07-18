@@ -5,12 +5,13 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 def dice_score(pred: np.ndarray, gt: np.ndarray) -> float:
+    """Dice coefficient. Both-empty → 1.0 (agreement on absent pathology)."""
     pred = pred.astype(bool)
     gt = gt.astype(bool)
     inter = np.logical_and(pred, gt).sum()
     s = pred.sum() + gt.sum()
     if s == 0:
-        return float("nan")
+        return 1.0
     return float(2.0 * inter / s)
 
 def iou_score(pred: np.ndarray, gt: np.ndarray) -> float:
@@ -19,15 +20,17 @@ def iou_score(pred: np.ndarray, gt: np.ndarray) -> float:
     inter = np.logical_and(pred, gt).sum()
     union = np.logical_or(pred, gt).sum()
     if union == 0:
-        return float("nan")
+        return 1.0
     return float(inter / union)
 
 def precision_recall(pred: np.ndarray, gt: np.ndarray):
     pred = pred.astype(bool)
     gt = gt.astype(bool)
     inter = np.logical_and(pred, gt).sum()
+    if pred.sum() == 0 and gt.sum() == 0:
+        return 1.0, 1.0
     if pred.sum() == 0:
-        prec = float("nan") if gt.sum() == 0 else 0.0
+        prec = 0.0
     else:
         prec = float(inter / pred.sum())
     if gt.sum() == 0:

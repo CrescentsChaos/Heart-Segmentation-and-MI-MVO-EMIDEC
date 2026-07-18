@@ -1,61 +1,92 @@
 {
   "model_name": "AFDD-Net",
-  "model_full_name": "Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency",
+  "model_full_name": "Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating, Topology Consistency, and Disease Classification Prior",
+  "protocol": "Single stratified split (test)",
   "ablation_table": [
     {
       "variant": "M1",
       "display": "Baseline 3D U-Net",
       "LV": 0.9154990945904558,
+      "LV_std": null,
       "MYO": 0.7275726217683869,
+      "MYO_std": null,
       "MI": 0.3210411089196191,
+      "MI_std": null,
       "MI_path": 0.4494575524874668,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 46.579736,
-      "inference_ms": 56.56935373942057
+      "inference_ms": 56.56935373942057,
+      "protocol": "single-split"
     },
     {
       "variant": "M2",
       "display": "AFDD-Net-F",
       "LV": 0.9048335067071245,
+      "LV_std": null,
       "MYO": 0.7298446879130895,
+      "MYO_std": null,
       "MI": 0.3251263637138227,
+      "MI_std": null,
       "MI_path": 0.4551769091993518,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 11.521496,
-      "inference_ms": 37.70019213358561
+      "inference_ms": 37.70019213358561,
+      "protocol": "single-split"
     },
     {
       "variant": "M3",
       "display": "AFDD-Net-D",
       "LV": 0.9069533659129558,
+      "LV_std": null,
       "MYO": 0.7582870030689389,
+      "MYO_std": null,
       "MI": 0.3173532563458492,
+      "MI_std": null,
       "MI_path": 0.41255923324960386,
+      "MI_path_std": null,
       "MVO": 0.03760463824650671,
+      "MVO_std": null,
       "params_M": 16.058893,
-      "inference_ms": 58.106088638305664
+      "inference_ms": 58.106088638305664,
+      "protocol": "single-split"
     },
     {
       "variant": "M4",
       "display": "AFDD-Net-T",
       "LV": 0.9061546942634694,
+      "LV_std": null,
       "MYO": 0.7611440011948499,
+      "MYO_std": null,
       "MI": 0.3365150763274069,
+      "MI_std": null,
       "MI_path": 0.4038180915928883,
+      "MI_path_std": null,
       "MVO": 0.038323901859823546,
+      "MVO_std": null,
       "params_M": 16.058893,
-      "inference_ms": 70.74602444966634
+      "inference_ms": 70.74602444966634,
+      "protocol": "single-split"
     },
     {
       "variant": "M5",
       "display": "AFDD-Net",
       "LV": 0.9053854373059125,
+      "LV_std": null,
       "MYO": 0.7734933804274451,
+      "MYO_std": null,
       "MI": 0.32531696086786466,
+      "MI_std": null,
       "MI_path": 0.4554437452150105,
+      "MI_path_std": null,
       "MVO": 0.2398014440433213,
+      "MVO_std": null,
       "params_M": 16.058893,
-      "inference_ms": 59.319051106770836
+      "inference_ms": 59.319051106770836,
+      "protocol": "single-split"
     }
   ],
   "baseline_table": [
@@ -63,56 +94,86 @@
       "variant": "UNET",
       "display": "UNet",
       "LV": 0.891096195678254,
+      "LV_std": null,
       "MYO": 0.6842405371302286,
+      "MYO_std": null,
       "MI": 0.26586050696257685,
+      "MI_std": null,
       "MI_path": 0.34561865905134986,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 19.220713,
-      "inference_ms": 18.16412607828776
+      "inference_ms": 18.16412607828776,
+      "protocol": "single-split"
     },
     {
       "variant": "SEGRESNET",
       "display": "SegResNet",
       "LV": 0.9016011578682643,
+      "LV_std": null,
       "MYO": 0.6804857718671158,
+      "MYO_std": null,
       "MI": 0.36484782561957413,
+      "MI_std": null,
       "MI_path": 0.40133260818153155,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 4.700948,
-      "inference_ms": 54.37715848286947
+      "inference_ms": 54.37715848286947,
+      "protocol": "single-split"
     },
     {
       "variant": "SWINUNETR",
       "display": "SwinUNETR",
       "LV": 0.9106248300255694,
+      "LV_std": null,
       "MYO": 0.7260526786946978,
+      "MYO_std": null,
       "MI": 0.3725202685867674,
+      "MI_std": null,
       "MI_path": 0.5215283760214744,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 15.703054,
-      "inference_ms": 102.96812057495117
+      "inference_ms": 102.96812057495117,
+      "protocol": "single-split"
     },
     {
       "variant": "NNUNET",
       "display": "nnU-Net",
       "LV": 0.9040024228098091,
+      "LV_std": null,
       "MYO": 0.7111204931431876,
+      "MYO_std": null,
       "MI": 0.3511203111202014,
+      "MI_std": null,
       "MI_path": 0.45645640445626184,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 16.663556,
-      "inference_ms": 45.887978871663414
+      "inference_ms": 45.887978871663414,
+      "protocol": "single-split"
     },
     {
       "variant": "DYNUNET",
       "display": "DynUNet",
       "LV": 0.906514558279204,
+      "LV_std": null,
       "MYO": 0.6991697615994698,
+      "MYO_std": null,
       "MI": 0.3357436086044333,
+      "MI_std": null,
       "MI_path": 0.43646669118576326,
+      "MI_path_std": null,
       "MVO": null,
+      "MVO_std": null,
       "params_M": 22.572004,
-      "inference_ms": 74.80792999267578
+      "inference_ms": 74.80792999267578,
+      "protocol": "single-split"
     }
   ],
   "sota_targets": [
@@ -226,5 +287,6 @@
     }
   ],
   "target_mi_dice": 0.76,
-  "note": "EMIDEC-only SOTA. Target: AFDD-Net MI Dice > 0.76 (Schwab 2025 (EMIDEC best)); stretch > 0.783 (ICPIU-Net 5-fold). MI = all-case nanmean (FP on normals \u2192 0). MI_path = pathological cases only (matches train 'primary MI Dice' / EMIDEC practice). Baselines are 4-class multiclass (Infarct = MI+MVO)."
+  "primary_metric": "MI_path",
+  "note": "EMIDEC-only SOTA. Target: AFDD-Net MI_path Dice > 0.76 (Schwab 2025 (EMIDEC best)); stretch > 0.783 (ICPIU-Net 5-fold). Protocol: Single stratified split (test). PRIMARY: MI_path (pathological only). Under --cv, values are mean\u00b1std across 5 folds. All models share Dataset/folds.json and CV_EPOCHS."
 }

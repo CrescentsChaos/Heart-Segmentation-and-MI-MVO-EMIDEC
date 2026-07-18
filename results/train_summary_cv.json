@@ -1,0 +1,439 @@
+{
+  "M1_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M1_fold0_best.pth",
+    "best_mi_dice": 0.5808403585522574,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M2_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M2_fold0_best.pth",
+    "best_mi_dice": 0.6492711809467863,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M3_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M3_fold0_best.pth",
+    "best_mi_dice": 0.406526434824725,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M4_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M4_fold0_best.pth",
+    "best_mi_dice": 0.3946742547009793,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M5_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold0_best.pth",
+    "best_mi_dice": 0.43652608086404404,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "UNET_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_fold0_best.pth",
+    "best_mi_dice": 0.40581534655729795,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SEGRESNET_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold0_best.pth",
+    "best_mi_dice": 0.3333333333333333,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SWINUNETR_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_fold0_best.pth",
+    "best_mi_dice": 0.513741910970486,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "NNUNET_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_fold0_best.pth",
+    "best_mi_dice": 0.4630013022835926,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "DYNUNET_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold0_best.pth",
+    "best_mi_dice": 0.44185826379813076,
+    "params": null,
+    "epochs": 80,
+    "fold": 0,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M1_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M1_fold1_best.pth",
+    "best_mi_dice": 0.5260978019509083,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M2_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M2_fold1_best.pth",
+    "best_mi_dice": 0.6476542689881398,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M3_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M3_fold1_best.pth",
+    "best_mi_dice": 0.34347854927000154,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M4_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M4_fold1_best.pth",
+    "best_mi_dice": 0.3374347724567228,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M5_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold1_best.pth",
+    "best_mi_dice": 0.41154467314672283,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "UNET_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_fold1_best.pth",
+    "best_mi_dice": 0.5348331076980938,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SEGRESNET_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold1_best.pth",
+    "best_mi_dice": 0.5801247411132494,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SWINUNETR_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_fold1_best.pth",
+    "best_mi_dice": 0.5013494622984461,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "NNUNET_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_fold1_best.pth",
+    "best_mi_dice": 0.592390980870096,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "DYNUNET_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold1_best.pth",
+    "best_mi_dice": 0.5261148776353112,
+    "params": null,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M1_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M1_fold2_best.pth",
+    "best_mi_dice": 0.6654062891395548,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M2_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M2_fold2_best.pth",
+    "best_mi_dice": 0.6189951226962979,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M3_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M3_fold2_best.pth",
+    "best_mi_dice": 0.32722540834329494,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M4_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M4_fold2_best.pth",
+    "best_mi_dice": 0.29828492213595514,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M5_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold2_best.pth",
+    "best_mi_dice": 0.40352405592174745,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "UNET_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_fold2_best.pth",
+    "best_mi_dice": 0.4884165051486668,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SEGRESNET_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold2_best.pth",
+    "best_mi_dice": 0.6196162886738104,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SWINUNETR_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_fold2_best.pth",
+    "best_mi_dice": 0.5460205392252407,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "NNUNET_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_fold2_best.pth",
+    "best_mi_dice": 0.5324448199665818,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "DYNUNET_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold2_best.pth",
+    "best_mi_dice": 0.5635439462659393,
+    "params": null,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M1_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M1_fold3_best.pth",
+    "best_mi_dice": 0.49508024190954414,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M2_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M2_fold3_best.pth",
+    "best_mi_dice": 0.4674729992960785,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M3_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M3_fold3_best.pth",
+    "best_mi_dice": 0.34322158784046203,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M4_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M4_fold3_best.pth",
+    "best_mi_dice": 0.4050821154415574,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "M5_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold3_best.pth",
+    "best_mi_dice": 0.3498173622473072,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "UNET_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_fold3_best.pth",
+    "best_mi_dice": 0.4875968766841645,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SEGRESNET_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold3_best.pth",
+    "best_mi_dice": 0.570927822432732,
+    "params": null,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv",
+    "skipped": true
+  },
+  "SWINUNETR_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_fold3_best.pth",
+    "best_mi_dice": 0.5065870923658856,
+    "params": 15703054,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv"
+  },
+  "NNUNET_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_fold3_best.pth",
+    "best_mi_dice": 0.50320036929603,
+    "params": 16663556,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold3_best.pth",
+    "best_mi_dice": 0.6084304080219112,
+    "params": 22572004,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv"
+  },
+  "M1_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M1_fold4_best.pth",
+    "best_mi_dice": 0.5764263239189528,
+    "params": 46579736,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "M2_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M2_fold4_best.pth",
+    "best_mi_dice": 0.45002333630321756,
+    "params": 11521496,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "M3_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M3_fold4_best.pth",
+    "best_mi_dice": 0.3808325875092968,
+    "params": 16091790,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "M4_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M4_fold4_best.pth",
+    "best_mi_dice": 0.4178880998388975,
+    "params": 16091790,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "M5_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold4_best.pth",
+    "best_mi_dice": 0.4575335354477792,
+    "params": 16091790,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "UNET_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\UNET_fold4_best.pth",
+    "best_mi_dice": 0.5684480450440753,
+    "params": 19220713,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "SEGRESNET_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold4_best.pth",
+    "best_mi_dice": 0.5958290777442319,
+    "params": 4700948,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "SWINUNETR_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SWINUNETR_fold4_best.pth",
+    "best_mi_dice": 0.5810741225570542,
+    "params": 15703054,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "NNUNET_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\NNUNET_fold4_best.pth",
+    "best_mi_dice": 0.3212140675747693,
+    "params": 16663556,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold4_best.pth",
+    "best_mi_dice": 0.5434153166678725,
+    "params": 22572004,
+    "epochs": 80,
+    "fold": 4,
+    "protocol": "5-fold-cv"
+  }
+}

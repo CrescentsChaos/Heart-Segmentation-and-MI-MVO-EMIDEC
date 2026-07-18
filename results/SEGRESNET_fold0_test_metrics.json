@@ -1,0 +1,672 @@
+{
+  "summary": {
+    "LV": {
+      "dice": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "iou": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "precision": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "recall": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "hd95": {
+        "mean": 306.38834069472495,
+        "std": 39.243480301355014,
+        "n": 21
+      }
+    },
+    "MYO": {
+      "dice": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "iou": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "precision": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "recall": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 21
+      },
+      "hd95": {
+        "mean": 315.1634496574753,
+        "std": 0.0,
+        "n": 21
+      }
+    },
+    "Infarct": {
+      "dice": {
+        "mean": 0.3333333333333333,
+        "std": 0.47140452079103157,
+        "n": 21
+      },
+      "iou": {
+        "mean": 0.3333333333333333,
+        "std": 0.47140452079103157,
+        "n": 21
+      },
+      "precision": {
+        "mean": 0.3333333333333333,
+        "std": 0.47140452079103157,
+        "n": 21
+      },
+      "recall": {
+        "mean": 0.3333333333333333,
+        "std": 0.47140452079103157,
+        "n": 21
+      },
+      "hd95": {
+        "mean": 210.10896643831686,
+        "std": 148.5694749566306,
+        "n": 21
+      }
+    },
+    "Infarct_pathological": {
+      "dice": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 14
+      },
+      "iou": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 14
+      },
+      "precision": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 14
+      },
+      "recall": {
+        "mean": 0.0,
+        "std": 0.0,
+        "n": 14
+      },
+      "hd95": {
+        "mean": 315.16344965747527,
+        "std": 5.684341886080802e-14,
+        "n": 14
+      }
+    },
+    "params_M": 4.700948,
+    "inference_ms_mean": 19.99775568644206,
+    "inference_ms_std": 7.781551541108002,
+    "variant": "SEGRESNET",
+    "split": "fold0_test",
+    "fold": 0,
+    "n_cases": 21,
+    "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold0_best.pth",
+    "hard_myo_mask": true,
+    "mi_voxel_suppression": true,
+    "primary_metric": "MI_pathological",
+    "protocol": "5-fold-cv"
+  },
+  "per_case": [
+    {
+      "case": "Case_N020",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N032",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N042",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N046",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N054",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N070",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_N083",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 1.0,
+        "iou": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "hd95": 0.0
+      },
+      "pathological": false
+    },
+    {
+      "case": "Case_P003",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P029",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P036",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P047",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P050",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P051",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P066",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P072",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P078",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P081",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P088",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P090",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P092",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    },
+    {
+      "case": "Case_P097",
+      "fold": 0,
+      "LV": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 130.88616143971745
+      },
+      "MYO": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "Infarct": {
+        "dice": 0.0,
+        "iou": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "hd95": 315.1634496574753
+      },
+      "pathological": true
+    }
+  ]
+}

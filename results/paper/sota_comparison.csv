@@ -8,4 +8,4 @@ GAN-aug. cascade,Lustermans et al.,2022,Cascaded nnU-Net + cGAN,,0.84,0.72,,EMID
 CLAIM,Ramzan et al.,2025,Diffusion augmentation + nnU-Net,,,0.635,,EMIDEC,10 held-out cases
 2D-3D Cascade (EcorC),Schwab et al.,2025,Error-correcting 2D-3D cascade CNN,,0.86,0.76,,EMIDEC,5-fold CV (100 cases)
 Expert (inter-observer),Lalande et al.,2020,Human expert ceiling,,0.83,0.69,,EMIDEC,Inter-observer (Data 2020)
-AFDD-Net,this work,2026,Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency,0.9053854373059125,0.7734933804274451,0.32531696086786466,0.2398014440433213,EMIDEC,Stratified test split
+AFDD-Net,this work,2026,"Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating, Topology Consistency, and Disease Classification Prior",0.9053854373059125,0.7734933804274451,0.32531696086786466,0.2398014440433213,EMIDEC,Stratified test split

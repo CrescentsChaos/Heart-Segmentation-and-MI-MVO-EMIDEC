@@ -4,7 +4,8 @@
 MODEL_NAME = "AFDD-Net"
 MODEL_FULL_NAME = (
     "Anisotropic Factorized Dual-Decoder Network "
-    "with MYO Soft-Gating and Topology Consistency"
+    "with MYO Soft-Gating, Topology Consistency, "
+    "and Disease Classification Prior"
 )
 MODEL_YEAR = 2026
 

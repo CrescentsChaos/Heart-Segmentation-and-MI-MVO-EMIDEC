@@ -1,4 +1,4 @@
-"""Losses: Dice+WCE, Focal Tversky, topology consistency, joint objective."""
+"""Losses: Dice+WCE, Focal Tversky, topology consistency, disease BCE, joint objective."""
 from __future__ import annotations
 
 from typing import Dict, Optional
@@ -97,12 +97,14 @@ class TopologyConsistencyLoss(nn.Module):
 
 class JointLoss(nn.Module):
     """
-    L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo   (Sec. 4.4.4)
+    L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo + λ_class * L_class
 
     For M1/M2 and external baselines (UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET):
         Dice+WCE on 4-class multiclass only.
     For M3: anatomy + soft Dice-like pathology (α=β=0.5, γ=1).
     For M4/M5: FTL on pathology; M5 enables L_topo (curriculum-controlled).
+    Disease BCE (L_class) when outputs contain disease_logits.
+    Optionally restrict L_FTL to pathological cases only (mixed N/P batches).
     """
 
     def __init__(
@@ -112,19 +114,23 @@ class JointLoss(nn.Module):
         anatomy_weights: Optional[torch.Tensor] = None,
         lambda_ftl: float = 1.0,
         lambda_topo: float = 0.05,
+        lambda_class: float = 0.5,
         ftl_alpha: float = 0.65,
         ftl_beta: float = 0.35,
         ftl_gamma: float = 0.75,
         use_gt_myo_for_topo: bool = True,
         mi_channel_weight: float = 1.5,
         mvo_channel_weight: float = 0.75,
+        path_loss_on_pathological_only: bool = True,
     ):
         super().__init__()
         self.variant = variant.upper()
         self.lambda_ftl = lambda_ftl
+        self.lambda_class = float(lambda_class)
         self.base_lambda_topo = float(lambda_topo) if self.variant == "M5" else 0.0
         self.lambda_topo = self.base_lambda_topo
         self.use_gt_myo_for_topo = use_gt_myo_for_topo
+        self.path_loss_on_pathological_only = path_loss_on_pathological_only
         self.anat_loss = DiceCELoss(num_anatomy, anatomy_weights)
         self.multi_loss = DiceCELoss(4, torch.tensor([0.1, 1.0, 1.0, 2.5]))
         ch_w = torch.tensor([mi_channel_weight, mvo_channel_weight], dtype=torch.float32)
@@ -152,6 +158,13 @@ class JointLoss(nn.Module):
         # anatomy: (B, D, H, W) with MYO wall = class 2 (healthy+MI+MVO)
         return (anatomy == 2).float().unsqueeze(1)
 
+    def _pathological_mask(self, batch: Dict[str, torch.Tensor], bsz: int, device) -> torch.Tensor:
+        """Boolean (B,) — prefer explicit label; else GT MI/MVO > 0."""
+        if "pathological" in batch:
+            return batch["pathological"].to(device).bool().view(-1)
+        path = batch["pathology"]
+        return path.reshape(bsz, -1).sum(dim=1) > 0
+
     def forward(
         self,
         outputs: Dict[str, torch.Tensor],
@@ -162,22 +175,50 @@ class JointLoss(nn.Module):
             return {"loss": loss, "L_multi": loss.detach()}
 
         L_anat = self.anat_loss(outputs["anatomy_logits"], batch["anatomy"])
-        L_ftl = self.path_loss(outputs["pathology_prob"], batch["pathology"])
+        path_prob = outputs["pathology_prob"]
+        bsz = path_prob.shape[0]
+        device = path_prob.device
+
+        # Pathology FTL — optionally only on pathological patients (avoids FP pressure on N*)
+        if self.path_loss_on_pathological_only:
+            y_path = self._pathological_mask(batch, bsz, device)
+            if y_path.any():
+                L_ftl = self.path_loss(path_prob[y_path], batch["pathology"][y_path])
+            else:
+                L_ftl = path_prob.new_zeros(())
+        else:
+            L_ftl = self.path_loss(path_prob, batch["pathology"])
 
         if self.lambda_topo > 0:
             if self.use_gt_myo_for_topo:
                 myo_for_topo = self._gt_myo_mask(batch["anatomy"])
             else:
                 myo_for_topo = outputs["myo_mask"]
-            L_topo = self.topo_loss(outputs["pathology_prob"], myo_for_topo)
+            L_topo = self.topo_loss(path_prob, myo_for_topo)
         else:
-            L_topo = outputs["pathology_prob"].new_zeros(())
+            L_topo = path_prob.new_zeros(())
 
-        total = L_anat + self.lambda_ftl * L_ftl + self.lambda_topo * L_topo
+        # Disease classification BCE (normal=0, pathological=1)
+        if "disease_logits" in outputs and self.lambda_class > 0:
+            y_path = self._pathological_mask(batch, bsz, device).float()
+            L_class = F.binary_cross_entropy_with_logits(
+                outputs["disease_logits"].view(-1),
+                y_path.view(-1),
+            )
+        else:
+            L_class = path_prob.new_zeros(())
+
+        total = (
+            L_anat
+            + self.lambda_ftl * L_ftl
+            + self.lambda_topo * L_topo
+            + self.lambda_class * L_class
+        )
         return {
             "loss": total,
             "L_anat": L_anat.detach(),
-            "L_ftl": L_ftl.detach(),
+            "L_ftl": L_ftl.detach() if torch.is_tensor(L_ftl) else L_ftl,
             "L_topo": L_topo.detach() if torch.is_tensor(L_topo) else L_topo,
-            "lambda_topo": outputs["pathology_prob"].new_tensor(self.lambda_topo),
+            "L_class": L_class.detach() if torch.is_tensor(L_class) else L_class,
+            "lambda_topo": path_prob.new_tensor(self.lambda_topo),
         }

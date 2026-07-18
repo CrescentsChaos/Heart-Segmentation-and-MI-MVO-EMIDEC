@@ -457,22 +457,23 @@ def write_tables(rows: List[Dict], out_res: Path, split: str):
         "",
         "## Ablation study (methodology Table 4.5 / 4.6)",
         "",
-        "| Variant | Model | LV Dice | MYO Dice | MI Dice | MI_path | MVO Dice | Params (M) | Infer (ms) |",
-        "|---------|-------|--------:|---------:|--------:|--------:|---------:|-----------:|-----------:|",
+        "| Variant | Model | LV Dice | MYO Dice | **MI_path** | MI (all) | MVO Dice | Params (M) | Infer (ms) |",
+        "|---------|-------|--------:|---------:|-----------:|---------:|---------:|-----------:|-----------:|",
     ]
     for r in rows:
         def fmt(x):
             return f"{x:.3f}" if isinstance(x, float) else "-"
         lines.append(
             f"| {r['variant']} | {r['display']} | {fmt(r['LV_dice'])} | {fmt(r['MYO_dice'])} | "
-            f"{fmt(r['MI_dice'])} | {fmt(r.get('MI_path_dice'))} | {fmt(r['MVO_dice'])} | "
+            f"**{fmt(r.get('MI_path_dice'))}** | {fmt(r['MI_dice'])} | {fmt(r['MVO_dice'])} | "
             f"{fmt(r['params_M']) if r.get('params_M') else '-'} | "
             f"{fmt(r['inference_ms']) if r.get('inference_ms') else '-'} |"
         )
     lines += [
         "",
-        "> **MI** = all-case Dice (FP on normals counts as 0). "
-        "**MI_path** = pathological cases only — same quantity as train `primary MI_path Dice`. "
+        "> **PRIMARY: MI_path** = pathological cases only (cite in thesis; train checkpoint metric). "
+        "**MI (all)** is secondary — FP on normals yield Dice 0. "
+        "Disease classifier + voxel suppression reduce healthy FPs. "
         "Train best is on **val**; this table is **test**.",
         "",
         "## Comparison with state-of-the-art (methodology Table 4.7, EMIDEC-only)",

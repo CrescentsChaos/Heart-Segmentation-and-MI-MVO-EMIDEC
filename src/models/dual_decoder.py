@@ -172,7 +172,8 @@ class SingleDecoderUNet3D(nn.Module):
         return {"multiclass_logits": logits}
 
 class DualDecoderNet(nn.Module):
-    """Joint anatomy + pathology network (M3/M4/M5)."""
+    """Joint anatomy + pathology network (M3/M4/M5) with optional disease head."""
+
     def __init__(
         self,
         in_ch: int = 1,
@@ -184,11 +185,17 @@ class DualDecoderNet(nn.Module):
         myo_class_index: int = 2,
         detach_myo_gate: bool = True,
         soft_myo_restrict: bool = True,
+        use_disease_classifier: bool = True,
+        gate_pathology_by_disease: bool = True,
+        disease_threshold: float = 0.5,
     ):
         super().__init__()
         self.myo_class_index = myo_class_index
         self.detach_myo_gate = detach_myo_gate
         self.soft_myo_restrict = soft_myo_restrict
+        self.use_disease_classifier = use_disease_classifier
+        self.gate_pathology_by_disease = gate_pathology_by_disease
+        self.disease_threshold = float(disease_threshold)
         self.encoder = SharedEncoder(in_ch, filters, factorized=factorized)
         f4 = filters[-1]
         bn = f4 * 2
@@ -207,6 +214,17 @@ class DualDecoderNet(nn.Module):
             use_myo_gate=use_myo_gate,
             use_attention=True,
         )
+        # Lightweight normal-vs-pathological prior (ICPIU-Net motivation, linear head)
+        if use_disease_classifier:
+            self.classifier = nn.Sequential(
+                nn.AdaptiveAvgPool3d(1),
+                nn.Flatten(),
+                nn.Linear(bn, 64),
+                nn.ReLU(inplace=True),
+                nn.Linear(64, 1),
+            )
+        else:
+            self.classifier = None
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         z, skips = self.encoder(x)
@@ -221,7 +239,8 @@ class DualDecoderNet(nn.Module):
         # Detached so pathology cannot inflate MYO to "legalize" wall-wide MI.
         if self.soft_myo_restrict:
             path_prob = path_prob * myo_mask.detach()
-        return {
+
+        out: Dict[str, torch.Tensor] = {
             "anatomy_logits": anat_logits,
             "anatomy_prob": anat_prob,
             "myo_mask": myo_mask,
@@ -229,8 +248,28 @@ class DualDecoderNet(nn.Module):
             "pathology_prob": path_prob,
         }
 
+        if self.classifier is not None:
+            disease_logits = self.classifier(z)  # (B, 1) — P(pathological) logits
+            disease_prob = torch.sigmoid(disease_logits)
+            out["disease_logits"] = disease_logits
+            out["disease_prob"] = disease_prob
+            # Inference only: zero pathology for patients classified as healthy
+            if (
+                not self.training
+                and self.gate_pathology_by_disease
+                and self.use_disease_classifier
+            ):
+                disease_gate = (disease_prob > self.disease_threshold).float()
+                disease_gate = disease_gate.view(-1, 1, 1, 1, 1)
+                out["pathology_prob"] = path_prob * disease_gate
+                out["disease_gate"] = disease_gate
+
+        return out
+
+
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def build_model(variant: str, **kwargs) -> nn.Module:
     """
@@ -240,6 +279,7 @@ def build_model(variant: str, **kwargs) -> nn.Module:
       M3 - + dual decoder with MYO soft gating (Dice+WCE both heads)
       M4 - + Focal Tversky on pathology (loss-side; architecture = M3)
       M5 - + topology consistency loss (loss-side; architecture = M3)
+          + disease classification head (normal vs pathological prior)
 
     External baselines (MONAI, 4-class multiclass):
       UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET
@@ -261,6 +301,9 @@ def build_model(variant: str, **kwargs) -> nn.Module:
             use_myo_gate=True,
             detach_myo_gate=kwargs.get("detach_myo_gate", True),
             soft_myo_restrict=kwargs.get("soft_myo_restrict", True),
+            use_disease_classifier=kwargs.get("use_disease_classifier", True),
+            gate_pathology_by_disease=kwargs.get("gate_pathology_by_disease", True),
+            disease_threshold=kwargs.get("disease_threshold", 0.5),
         )
     from .baselines import BASELINE_BUILDERS, build_baseline
 

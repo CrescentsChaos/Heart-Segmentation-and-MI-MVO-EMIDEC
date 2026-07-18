@@ -18,8 +18,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 import config as cfg
+from inference import postprocess_pathology
 from model_identity import MODEL_NAME, VARIANT_SHORT, is_multiclass_variant
 from models.dual_decoder import build_model
+from train import _load_state_dict
 
 # ---------------------------- Case resolution --------------------------------
 
@@ -38,13 +40,13 @@ def normalize_case_id(case: str) -> str:
 
 def find_case_npz(case_id: str) -> Path:
     name = f"{case_id}.npz"
-    for split in ("test", "val", "train"):
+    for split in ("all", "test", "val", "train"):
         p = cfg.DATASET_DIR / split / name
         if p.exists():
             return p
     raise FileNotFoundError(
         f"No preprocessed volume for {case_id}. "
-        f"Expected under Dataset/{{train,val,test}}/{name}"
+        f"Expected under Dataset/{{all,train,val,test}}/{name}"
     )
 
 def load_clinical(case_id: str) -> Dict[str, str]:
@@ -109,13 +111,26 @@ def predict_case(case_id: str, variant: str, ckpt: Path, device: torch.device):
     gt_multi = data["multiclass"].astype(np.int64) if "multiclass" in data.files else None
     # (1,1,D,H,W)
     x = torch.from_numpy(image_hw_d).float().permute(2, 0, 1).unsqueeze(0).unsqueeze(0).to(device)
-    model = build_model(variant, filters=tuple(cfg.BASE_FILTERS)).to(device)
+    model = build_model(
+        variant,
+        filters=tuple(cfg.BASE_FILTERS),
+        use_disease_classifier=getattr(cfg, "USE_DISEASE_CLASSIFIER", True),
+        gate_pathology_by_disease=getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True),
+        disease_threshold=getattr(cfg, "DISEASE_CLASS_THRESHOLD", 0.5),
+    ).to(device)
     state = torch.load(ckpt, map_location=device, weights_only=False)
-    model.load_state_dict(state["model"])
+    _load_state_dict(model, state["model"], strict=False)
     model.eval()
     out = model(x)
     if is_multiclass_variant(variant):
-        multi = out["multiclass_logits"].argmax(1)[0].cpu().numpy()  # (D,H,W)
+        multi = out["multiclass_logits"].argmax(1)[0]
+        if getattr(cfg, "MI_VOXEL_SUPPRESSION", True):
+            thr = int(getattr(cfg, "MIN_MI_VOXELS", 50))
+            infarct = multi == 3
+            if infarct.sum() < thr:
+                multi = multi.clone()
+                multi[infarct] = 2
+        multi = multi.cpu().numpy()  # (D,H,W)
         anatomy = np.zeros_like(multi, dtype=np.uint8)
         anatomy[multi == 1] = 1  # LV
         anatomy[multi == 2] = 2  # MYO (healthy only in multiclass)
@@ -125,10 +140,9 @@ def predict_case(case_id: str, variant: str, ckpt: Path, device: torch.device):
         # MVO not separable in multiclass baselines
     else:
         anatomy = out["anatomy_logits"].argmax(1)[0].cpu().numpy().astype(np.uint8)
-        pathology = (out["pathology_prob"][0] > 0.5).cpu().numpy().astype(np.uint8)
-        # Confine pathology to predicted MYO (soft gate already trained; hard clip for report)
-        myo = anatomy == 2
-        pathology = pathology * myo[None, ...]
+        pathology = (
+            postprocess_pathology(out, hard_mask=True)[0].cpu().numpy().astype(np.uint8)
+        )
     vol = x[0, 0].cpu().numpy()  # (D,H,W)
     return {
         "image": vol,

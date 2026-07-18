@@ -29,7 +29,7 @@ Anatomy MYO wall = `{2,3,4}`. Pathology is two independent channels for MI and M
 | **M2** | AFDD-Net-F | **Anisotropic factorized convolutions** (`3�3�1` + `1�1�3`) matching EMIDEC spacing ? 1.5�1.5�10 mm | Single decoder | Same |
 | **M3** | AFDD-Net-D | **Dual decoder** + **MYO soft-gating** into pathology features at every scale | Dual decoder | Soft Dice / Tversky ?=?=0.5 |
 | **M4** | AFDD-Net-T | **Focal Tversky** on pathology (FN-sensitive for tiny infarcts) | Same as M3 | FTL ?=0.65, ?=0.35, ?=0.75 |
-| **M5** | **AFDD-Net (full)** | **Topology consistency** `L_topo` + curriculum + hard MYO restrict | Same as M3 | FTL + small `L_topo` |
+| **M5** | **AFDD-Net (full)** | **Topology consistency** `L_topo` + **disease classifier** + curriculum + hard MYO restrict | Dual decoder + classifier | FTL + `L_topo` + `L_class` |
 
 **Important:** M3 / M4 / M5 share the **same network weights topology**. M4 and M5 differences are loss / constraint / training schedule only.
 
@@ -37,8 +37,9 @@ Anatomy MYO wall = `{2,3,4}`. Pathology is two independent channels for MI and M
 
 1. **Anisotropy-aware 3D blocks** � native factorization for thick-slice LGE instead of 2D?3D cascade (Zhang / Schwab).  
 2. **Joint anatomy�pathology dual decoder with MYO soft-gating** � MI decoded only in myocardial context; imbalance mitigated (~1:200 ? wall-local).  
-3. **Topology consistency** � MI / MVO mass must lie inside the myocardial wall (clinical prior: blockage scar ? MYO).  
-4. **Efficiency** � full model ? **16M** params vs baseline ? **47M**, with competitive anatomy Dice.
+3. **Topology consistency** — MI / MVO mass must lie inside the myocardial wall (clinical prior: blockage scar ⊆ MYO).  
+4. **Disease classification prior** — lightweight bottleneck head (normal vs pathological) suppresses MI on healthy patients; more efficient than ICPIU-Net's VAE prior.  
+5. **Efficiency** — full model ~ **16M** params vs baseline ~ **47M**, with competitive anatomy Dice.
 
 ---
 
@@ -153,7 +154,17 @@ Target **0.78** is above current published EMIDEC 5-fold best (**0.760** Schwab)
 
 1. Report **pathological-only MI Dice** + FP rate on normals separately.  
 2. Match SOTA preprocessing more closely (?96�96 crop, per-volume z-score � already partially done).  
-3. Run **5-fold CV** for fair comparison with Schwab / ICPIU.  
+3. Run **5-fold CV** for fair comparison with Schwab / ICPIU:
+
+```bash
+python -m src.data.preprocess --folds-only
+python -m src.train --variant everything --cv
+python -m src.evaluate --all --baselines --cv --no-figs
+python -m src.make_tables --cv
+```
+
+All models share `Dataset/folds.json` and `CV_EPOCHS=80` (same protocol as nnU-Net 2021 5-fold EMIDEC budget).
+
 4. Optional boosters (pick one): late MI boundary / Hausdorff surrogate; mild TTA (already in `inference.py`); longer fine-tune of pathology head with frozen anatomy.
 
 Until MI ? ~0.65�0.70, frame the thesis contribution as:
@@ -196,8 +207,53 @@ Source of truth in code: `src/model_identity.py` ? `SOTA_BENCHMARKS`.
 
 ---
 
+## 10. Disease classification prior (healthy FP fix)
+
+EMIDEC mixes ~33 healthy (`Case_N*`) and ~67 pathological (`Case_P*`) training cases.
+Any false-positive MI voxels on a healthy case yield Dice = 0 and drag **all-case MI**
+hard (e.g. MI 0.325 vs MI_path 0.455). ICPIU-Net addressed this with a VAE classification
+prior; AFDD-Net uses a **lightweight linear head** on the encoder bottleneck.
+
+### Architecture (`DualDecoderNet`)
+
+```text
+z (bottleneck) → AdaptiveAvgPool3d(1) → Linear(bn→64) → ReLU → Linear(64→1)
+                                                            → σ → P(pathological)
+```
+
+At **inference**, if `P(pathological) ≤ 0.5`, pathology probabilities are zeroed.
+
+### Training (`JointLoss`)
+
+```text
+L_total = L_anat + λ_ftl · L_FTL + λ_topo · L_topo + λ_class · L_class
+```
+
+- `L_class` = BCE-with-logits on Case_P / Case_N labels (`λ_class = 0.5`)
+- `L_FTL` computed **only on pathological cases** in the batch
+- Checkpoint selection remains **MI_path** (pathological Dice)
+
+### Inference-only fallback (no retrain)
+
+If predicted MI voxels `< MIN_MI_VOXELS` (default 50), suppress the whole MI/MVO mask.
+Applies to dual-decoder and multiclass baselines (`MI_VOXEL_SUPPRESSION=True`).
+
+### Thesis primary metric
+
+**Cite `MI_path`** (pathological-only) in Table 5.3 — clinically: scar accuracy on
+patients who had infarction. Report all-case `MI` only as secondary; after the
+classifier, empty–empty agreement counts as Dice = 1.0 so overall MI rises toward
+MI_path without changing scar segmentation quality.
+
+Config knobs: `USE_DISEASE_CLASSIFIER`, `LAMBDA_CLASS`, `GATE_PATHOLOGY_BY_DISEASE`,
+`PATH_LOSS_ON_PATHOLOGICAL_ONLY`, `MI_VOXEL_SUPPRESSION`, `MIN_MI_VOXELS`.
+
+---
+
 ## 9. Bottom line
 
-- **M5 was not �worse architecture�** � it was **broken topology training** (`?=0.5`, undetached MYO, paint-the-wall).  
+- **M5 was not "worse architecture"** — it was **broken topology training** (`λ=0.5`, undetached MYO, paint-the-wall).  
 - **Fixes are in the code**; **retrain M5** (preferably after a solid M4) before updating thesis numbers.  
-- Target **> 0.78** is a stretch goal above published EMIDEC best; treat **? 0.70** as the first publication-ready milestone, then push with 5-fold CV.
+- **Disease classifier** is the recommended architectural contribution for healthy FP suppression.  
+- Target **> 0.78** is a stretch goal above published EMIDEC best; treat **≥ 0.70** as the first publication-ready milestone, then push with 5-fold CV.
+

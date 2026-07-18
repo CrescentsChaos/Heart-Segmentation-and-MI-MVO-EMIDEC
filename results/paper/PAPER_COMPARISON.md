@@ -1,6 +1,6 @@
 # AFDD-Net - Paper Comparison Report
 
-**Full name:** Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency
+**Full name:** Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating, Topology Consistency, and Disease Classification Prior
 
 **Dataset:** EMIDEC only (non-EMIDEC papers excluded from Table 4.7)
 **Split evaluated:** `test`
@@ -11,15 +11,20 @@
 
 ## Ablation study (methodology Table 4.5 / 4.6)
 
-| Variant | Model | LV Dice | MYO Dice | MI Dice | MI_path | MVO Dice | Params (M) | Infer (ms) |
-|---------|-------|--------:|---------:|--------:|--------:|---------:|-----------:|-----------:|
-| M1 | Baseline 3D U-Net | 0.915 | 0.728 | 0.321 | 0.449 | - | 46.580 | 56.569 |
-| M2 | AFDD-Net-F | 0.905 | 0.730 | 0.325 | 0.455 | - | 11.521 | 37.700 |
-| M3 | AFDD-Net-D | 0.907 | 0.758 | 0.317 | 0.413 | 0.038 | 16.059 | 58.106 |
-| M4 | AFDD-Net-T | 0.906 | 0.761 | 0.337 | 0.404 | 0.038 | 16.059 | 70.746 |
-| M5 | AFDD-Net | 0.905 | 0.773 | 0.325 | 0.455 | 0.240 | 16.059 | 59.319 |
+| Variant | Model | LV Dice | MYO Dice | **MI_path** | MI (all) | MVO Dice | Params (M) | Infer (ms) |
+|---------|-------|--------:|---------:|-----------:|---------:|---------:|-----------:|-----------:|
+| M1 | Baseline 3D U-Net | 0.915 | 0.728 | **0.449** | 0.321 | - | 46.580 | 56.569 |
+| M2 | AFDD-Net-F | 0.905 | 0.730 | **0.455** | 0.325 | - | 11.521 | 37.700 |
+| M3 | AFDD-Net-D | 0.907 | 0.758 | **0.413** | 0.317 | 0.038 | 16.059 | 58.106 |
+| M4 | AFDD-Net-T | 0.906 | 0.761 | **0.404** | 0.337 | 0.038 | 16.059 | 70.746 |
+| M5 | AFDD-Net | 0.905 | 0.773 | **0.455** | 0.325 | 0.240 | 16.059 | 59.319 |
+| UNET | UNet | 0.891 | 0.684 | **0.346** | 0.266 | - | 19.221 | 18.164 |
+| SEGRESNET | SegResNet | 0.902 | 0.680 | **0.401** | 0.365 | - | 4.701 | 54.377 |
+| SWINUNETR | SwinUNETR | 0.911 | 0.726 | **0.522** | 0.373 | - | 15.703 | 102.968 |
+| NNUNET | nnU-Net | 0.904 | 0.711 | **0.456** | 0.351 | - | 16.664 | 45.888 |
+| DYNUNET | DynUNet | 0.907 | 0.699 | **0.436** | 0.336 | - | 22.572 | 74.808 |
 
-> **MI** = all-case Dice (FP on normals counts as 0). **MI_path** = pathological cases only — same quantity as train `primary MI_path Dice`. Train best is on **val**; this table is **test**.
+> **PRIMARY: MI_path** = pathological cases only (cite in thesis; train checkpoint metric). **MI (all)** is secondary — FP on normals yield Dice 0. Disease classifier + voxel suppression reduce healthy FPs. Train best is on **val**; this table is **test**.
 
 ## Comparison with state-of-the-art (methodology Table 4.7, EMIDEC-only)
 
@@ -48,7 +53,7 @@
 
 ## How to cite this model
 
-> AFDD-Net: Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating and Topology Consistency. Joint anatomy (LV, MYO) and pathology (MI, MVO) segmentation on EMIDEC LGE-MRI using anisotropic factorized 3D convolutions, dual-decoder MYO soft gating, Focal Tversky loss, and topology consistency loss.
+> AFDD-Net: Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating, Topology Consistency, and Disease Classification Prior. Joint anatomy (LV, MYO) and pathology (MI, MVO) segmentation on EMIDEC LGE-MRI using anisotropic factorized 3D convolutions, dual-decoder MYO soft gating, Focal Tversky loss, and topology consistency loss.
 
 ## Figures
 

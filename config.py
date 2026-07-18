@@ -72,6 +72,23 @@ MVO_CHANNEL_WEIGHT = 0.75
 HARD_MYO_MASK_AT_INFER = True
 # Detach soft MYO before feeding pathology decoder / topo (stops coupled expand)
 DETACH_MYO_GATE = True
+
+# ---------------------------------------------------------------------------
+# Disease classifier (normal vs pathological) — AFDD-Net contribution
+# Suppresses MI/MVO on patients classified as healthy (reduces FP Dice=0).
+# Inspired by ICPIU-Net classification prior, but a lightweight linear head.
+# ---------------------------------------------------------------------------
+USE_DISEASE_CLASSIFIER = True
+LAMBDA_CLASS = 0.5
+DISEASE_CLASS_THRESHOLD = 0.5
+# Compute Focal-Tversky / pathology loss only on pathological cases in the batch
+PATH_LOSS_ON_PATHOLOGICAL_ONLY = True
+# Gate pathology outputs by classifier at inference (eval / predict)
+GATE_PATHOLOGY_BY_DISEASE = True
+# Inference-only fallback (no retrain): zero MI/MVO if voxel count < threshold
+MI_VOXEL_SUPPRESSION = True
+MIN_MI_VOXELS = 50
+
 SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
@@ -82,10 +99,21 @@ BASELINE_EPOCHS = 80
 BASELINE_BATCH_SIZE = 2
 SWINUNETR_BATCH_SIZE = 1
 
+# ---------------------------------------------------------------------------
+# 5-fold CV (primary protocol for SOTA-comparable Dice reporting)
+# Same folds + same epochs for EVERY model (M1-M5 and baselines).
+# Matched to nnU-Net 2021 EMIDEC 5-fold style budget: 80 epochs.
+# ---------------------------------------------------------------------------
+N_FOLDS = 5
+CV_INNER_VAL_FRAC = 0.15  # of train-pool only; test fold never used for val
+# In --cv mode ALL variants (ablation + baselines) use this — fair comparison
+CV_EPOCHS = 80
+
 # Official model identity (paper / thesis comparison)
 MODEL_NAME = "AFDD-Net"
 MODEL_FULL_NAME = (
     "Anisotropic Factorized Dual-Decoder Network "
-    "with MYO Soft-Gating and Topology Consistency"
+    "with MYO Soft-Gating, Topology Consistency, "
+    "and Disease Classification Prior"
 )
 PAPER_FIGURES_DIR = FIGURES_DIR / "paper"
