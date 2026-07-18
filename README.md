@@ -3,7 +3,7 @@
 **AFDD-Net** (*Anisotropic Factorized Dual-Decoder Network with MYO Soft-Gating, Topology Consistency, and Disease Classification Prior*)
 segments LV + MYO first, then MI + MVO on EMIDEC LGE-MRI.
 
-## Quick start (5-fold CV — preferred for SOTA comparison)
+## 5-fold CV (preferred for SOTA comparison)
 
 All models (M1–M5 **and** baselines) share the **same** `Dataset/folds.json` and the **same** epoch budget (`CV_EPOCHS=80`, aligned with nnU-Net 2021 5-fold EMIDEC reporting).
 
