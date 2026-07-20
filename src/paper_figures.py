@@ -59,8 +59,9 @@ PALETTE = {
     "UNET": "#4C78A8",
     "SEGRESNET": "#72B7B2",
     "SWINUNETR": "#F58518",
-    "NNUNET": "#E45756",
     "DYNUNET": "#54A24B",
+    "DYNUNET_RES": "#D67195",
+    "NNUNET": "#1F77B4",
     "sota": "#72B7B2",
     "ours": "#B279A2",
 }
@@ -73,7 +74,11 @@ def _ensure_dirs():
     return fig, res
 
 def _dice_key(variant: str) -> str:
-    return "Infarct" if is_multiclass_variant(variant) else "MI"
+    return "MI"
+
+
+def _mi_path_key(variant: str) -> str:
+    return "MI_pathological"
 
 def load_history(variant: str) -> Optional[List[Dict]]:
     path = cfg.RESULTS_DIR / f"{variant}_history.json"
@@ -205,12 +210,8 @@ def collect_ablation_rows(split: str = "test") -> List[Dict[str, Any]]:
                 "LV_dice": _metric(s, "LV", "dice"),
                 "MYO_dice": _metric(s, "MYO", "dice"),
                 "MI_dice": _metric(s, mi_key, "dice"),
-                "MI_path_dice": _metric(
-                    s,
-                    "Infarct_pathological" if multi else "MI_pathological",
-                    "dice",
-                ),
-                "MVO_dice": None if multi else _metric(s, "MVO", "dice"),
+                "MI_path_dice": _metric(s, "MI_pathological", "dice"),
+                "MVO_dice": _metric(s, "MVO", "dice"),
                 "LV_hd95": _metric(s, "LV", "hd95"),
                 "MYO_hd95": _metric(s, "MYO", "hd95"),
                 "MI_hd95": _metric(s, mi_key, "hd95"),
@@ -471,9 +472,11 @@ def write_tables(rows: List[Dict], out_res: Path, split: str):
         )
     lines += [
         "",
-        "> **PRIMARY: MI_path** = pathological cases only (cite in thesis; train checkpoint metric). "
-        "**MI (all)** is secondary — FP on normals yield Dice 0. "
-        "Disease classifier + voxel suppression reduce healthy FPs. "
+        "> **PRIMARY: MI_path** = pure MI Dice (EMIDEC label 3) on pathological cases only. "
+        "Multiclass models (M1/M2/baselines) now predict MI and MVO as separate classes — "
+        "not merged infarct. MI_all includes healthy empty–empty = 1.0; do not cite as scar metric. "
+        "NNUNET row is real nnU-Net v2; DYNUNET_RES is MONAI residual DynUNet. "
+        "**MI (all)** is secondary. Disease classifier (M5 only) + voxel suppression reduce healthy FPs. "
         "Train best is on **val**; this table is **test**.",
         "",
         "## Comparison with state-of-the-art (methodology Table 4.7, EMIDEC-only)",

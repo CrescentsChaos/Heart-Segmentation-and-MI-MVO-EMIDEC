@@ -1,2 +1,6 @@
 /Dataset
 /checkpoints
+/nnunet_data
+__pycache__/
+*.pyc
+.pytest_cache/

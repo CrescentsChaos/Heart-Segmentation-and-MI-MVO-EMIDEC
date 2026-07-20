@@ -214,10 +214,11 @@ def predict_multiclass(
     )
     if do_suppress:
         thr = int(getattr(cfg, "MIN_MI_VOXELS", 50))
-        # class 3 = infarct∪MVO; sparse → reclassify as healthy MYO (2)
+        # class 3 = pure MI; sparse → reclassify as healthy MYO (2)
         pred = pred.clone()
+        mi_cls = int(getattr(cfg, "MULTICLASS_MI", 3))
         for b in range(pred.shape[0]):
-            infarct = pred[b] == 3
-            if infarct.sum() < thr:
-                pred[b][infarct] = 2
+            mi_vox = pred[b] == mi_cls
+            if mi_vox.sum() < thr:
+                pred[b][mi_vox] = 2
     return {"multiclass_logits": logits, "multiclass_pred": pred}

@@ -41,8 +41,8 @@ def build_targets(raw_mask: np.ndarray) -> Dict[str, np.ndarray]:
       0 BG, 1 LV cavity, 2 full MYO wall (raw 2 ∪ 3 ∪ 4)
     Pathology (multi-label):
       channel 0 = MI (raw 3), channel 1 = MVO (raw 4)
-    Multiclass baseline (M1/M2):
-      0 BG, 1 LV, 2 healthy MYO (raw 2 only), 3 infarct∪MVO (raw 3∪4)
+    Multiclass (M1/M2 + MONAI baselines) — pure MI for SOTA comparison:
+      0 BG, 1 LV, 2 healthy MYO (raw 2), 3 MI (raw 3), 4 MVO (raw 4)
     """
     anatomy = np.zeros(raw_mask.shape, dtype=np.uint8)
     anatomy[raw_mask == cfg.RAW_LV] = cfg.ANAT_LV
@@ -51,9 +51,10 @@ def build_targets(raw_mask: np.ndarray) -> Dict[str, np.ndarray]:
     pathology[..., 0] = (raw_mask == cfg.RAW_MI).astype(np.float32)
     pathology[..., 1] = (raw_mask == cfg.RAW_MVO).astype(np.float32)
     multiclass = np.zeros(raw_mask.shape, dtype=np.uint8)
-    multiclass[raw_mask == cfg.RAW_LV] = 1
-    multiclass[raw_mask == cfg.RAW_MYO] = 2
-    multiclass[np.isin(raw_mask, [cfg.RAW_MI, cfg.RAW_MVO])] = 3
+    multiclass[raw_mask == cfg.RAW_LV] = cfg.MULTICLASS_LV
+    multiclass[raw_mask == cfg.RAW_MYO] = cfg.MULTICLASS_MYO
+    multiclass[raw_mask == cfg.RAW_MI] = cfg.MULTICLASS_MI
+    multiclass[raw_mask == cfg.RAW_MVO] = cfg.MULTICLASS_MVO
     return {
         "anatomy": anatomy,
         "pathology": pathology,
@@ -191,15 +192,17 @@ def run_preprocess(emidec_root: Optional[Path] = None, out_dir: Optional[Path] =
         all_out = out_dir / "all" / f"{case_dir.name}.npz"
         np.savez_compressed(all_out, **data)
         print(
-            f"Saved {out.name} → {split}  shape={data['image'].shape}  "
+            f"Saved {out.name} -> {split}  shape={data['image'].shape}  "
             f"MI={int(data['pathology'][..., 0].sum())} MVO={int(data['pathology'][..., 1].sum())}"
         )
-    # Freeze shared 5-fold definition for every model
+    # Keep existing folds.json (do not reshuffle mid-experiment)
     from data.cv_splits import ensure_folds
 
-    folds_meta = ensure_folds(out_dir, n_folds=getattr(cfg, "N_FOLDS", 5), seed=cfg.SEED, overwrite=True)
+    folds_meta = ensure_folds(
+        out_dir, n_folds=getattr(cfg, "N_FOLDS", 5), seed=cfg.SEED, overwrite=False
+    )
     print(f"Done. train={len(train)} val={len(val)} test={len(test)}")
-    print(f"5-fold CV → {out_dir / 'folds.json'}  ({folds_meta['n_folds']} folds, seed={folds_meta['seed']})")
+    print(f"5-fold CV -> {out_dir / 'folds.json'}  ({folds_meta['n_folds']} folds, seed={folds_meta['seed']})")
     for c in folds_meta["counts"]:
         print(f"  fold{c['fold']}: n={c['n']} (N={c['n_normal']}, P={c['n_pathological']})")
 

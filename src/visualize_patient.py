@@ -114,8 +114,12 @@ def predict_case(case_id: str, variant: str, ckpt: Path, device: torch.device):
     model = build_model(
         variant,
         filters=tuple(cfg.BASE_FILTERS),
-        use_disease_classifier=getattr(cfg, "USE_DISEASE_CLASSIFIER", True),
-        gate_pathology_by_disease=getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True),
+        use_disease_classifier=(
+            variant.upper() == "M5" and getattr(cfg, "USE_DISEASE_CLASSIFIER", True)
+        ),
+        gate_pathology_by_disease=(
+            variant.upper() == "M5" and getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True)
+        ),
         disease_threshold=getattr(cfg, "DISEASE_CLASS_THRESHOLD", 0.5),
     ).to(device)
     state = torch.load(ckpt, map_location=device, weights_only=False)
@@ -124,20 +128,21 @@ def predict_case(case_id: str, variant: str, ckpt: Path, device: torch.device):
     out = model(x)
     if is_multiclass_variant(variant):
         multi = out["multiclass_logits"].argmax(1)[0]
+        mi_cls = int(getattr(cfg, "MULTICLASS_MI", 3))
+        mvo_cls = int(getattr(cfg, "MULTICLASS_MVO", 4))
         if getattr(cfg, "MI_VOXEL_SUPPRESSION", True):
             thr = int(getattr(cfg, "MIN_MI_VOXELS", 50))
-            infarct = multi == 3
-            if infarct.sum() < thr:
+            mi_vox = multi == mi_cls
+            if mi_vox.sum() < thr:
                 multi = multi.clone()
-                multi[infarct] = 2
+                multi[mi_vox] = 2
         multi = multi.cpu().numpy()  # (D,H,W)
         anatomy = np.zeros_like(multi, dtype=np.uint8)
         anatomy[multi == 1] = 1  # LV
-        anatomy[multi == 2] = 2  # MYO (healthy only in multiclass)
-        anatomy[multi == 3] = 2  # infarct sits in wall - count as MYO for %
+        anatomy[np.isin(multi, [2, mi_cls, mvo_cls])] = 2  # wall
         pathology = np.zeros((2,) + multi.shape, dtype=np.uint8)
-        pathology[0] = (multi == 3).astype(np.uint8)  # merged infarct as MI
-        # MVO not separable in multiclass baselines
+        pathology[0] = (multi == mi_cls).astype(np.uint8)  # pure MI
+        pathology[1] = (multi == mvo_cls).astype(np.uint8)  # MVO
     else:
         anatomy = out["anatomy_logits"].argmax(1)[0].cpu().numpy().astype(np.uint8)
         pathology = (

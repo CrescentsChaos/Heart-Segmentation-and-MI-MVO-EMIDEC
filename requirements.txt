@@ -1,8 +1,10 @@
 monai>=1.3
 torch>=2.0
 nibabel>=5.0
-numpy>=1.23
+numpy>=1.23,<2.0
 scipy>=1.10
 matplotlib>=3.7
 tqdm>=4.65
 einops>=0.6
+# Real nnU-Net v2 baseline (optional; python -m src.nnunet_emidec ...)
+nnunetv2>=2.5

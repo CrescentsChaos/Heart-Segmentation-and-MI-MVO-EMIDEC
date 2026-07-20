@@ -274,24 +274,37 @@ def count_parameters(model: nn.Module) -> int:
 def build_model(variant: str, **kwargs) -> nn.Module:
     """
     Ablation variants (methodology Table 4.5):
-      M1 - 3D U-Net baseline: isotropic 3x3x3, single decoder, 4-class
+      M1 - 3D U-Net baseline: isotropic 3x3x3, single decoder, 5-class
       M2 - + factorized convs in encoder/decoder
       M3 - + dual decoder with MYO soft gating (Dice+WCE both heads)
       M4 - + Focal Tversky on pathology (loss-side; architecture = M3)
       M5 - + topology consistency loss (loss-side; architecture = M3)
           + disease classification head (normal vs pathological prior)
+            NOTE: classifier is M5-only (not enabled for M3/M4).
 
-    External baselines (MONAI, 4-class multiclass):
-      UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET
+    External MONAI baselines (5-class BG/LV/MYO/MI/MVO):
+      UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES
+    Real nnU-Net v2: variant NNUNET via src/nnunet_emidec.py
     """
+    import config as cfg
+
     variant = variant.upper()
     filters = kwargs.get("filters", (32, 64, 128, 256))
     in_ch = kwargs.get("in_ch", 1)
+    n_multi = int(kwargs.get("num_classes", getattr(cfg, "NUM_MULTICLASS_CLASSES", 5)))
     if variant == "M1":
-        return SingleDecoderUNet3D(in_ch=in_ch, num_classes=4, filters=filters, factorized=False)
+        return SingleDecoderUNet3D(
+            in_ch=in_ch, num_classes=n_multi, filters=filters, factorized=False
+        )
     if variant == "M2":
-        return SingleDecoderUNet3D(in_ch=in_ch, num_classes=4, filters=filters, factorized=True)
+        return SingleDecoderUNet3D(
+            in_ch=in_ch, num_classes=n_multi, filters=filters, factorized=True
+        )
     if variant in ("M3", "M4", "M5"):
+        # Disease classifier is an M5 contribution only (ablation integrity)
+        want_cls = bool(kwargs.get("use_disease_classifier", True))
+        use_cls = want_cls and variant == "M5"
+        want_gate = bool(kwargs.get("gate_pathology_by_disease", True))
         return DualDecoderNet(
             in_ch=in_ch,
             num_anatomy=kwargs.get("num_anatomy", 3),
@@ -301,15 +314,19 @@ def build_model(variant: str, **kwargs) -> nn.Module:
             use_myo_gate=True,
             detach_myo_gate=kwargs.get("detach_myo_gate", True),
             soft_myo_restrict=kwargs.get("soft_myo_restrict", True),
-            use_disease_classifier=kwargs.get("use_disease_classifier", True),
-            gate_pathology_by_disease=kwargs.get("gate_pathology_by_disease", True),
+            use_disease_classifier=use_cls,
+            gate_pathology_by_disease=use_cls and want_gate,
             disease_threshold=kwargs.get("disease_threshold", 0.5),
         )
     from .baselines import BASELINE_BUILDERS, build_baseline
 
+    if variant == "NNUNET":
+        raise ValueError(
+            "NNUNET is real nnU-Net v2. Use: python -m src.nnunet_emidec prepare|train|eval"
+        )
     if variant in BASELINE_BUILDERS:
         return build_baseline(variant, in_ch=in_ch)
     raise ValueError(
         f"Unknown variant {variant}. Expected M1-M5 or "
-        f"{', '.join(BASELINE_BUILDERS)}."
+        f"{', '.join(list(BASELINE_BUILDERS) + ['NNUNET'])}."
     )

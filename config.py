@@ -36,10 +36,16 @@ RAW_BG, RAW_LV, RAW_MYO, RAW_MI, RAW_MVO = 0, 1, 2, 3, 4
 ANAT_BG, ANAT_LV, ANAT_MYO = 0, 1, 2
 NUM_ANATOMY_CLASSES = 3  # BG, LV, MYO  (RV omitted - no EMIDEC mask)
 NUM_PATHOLOGY_CLASSES = 2  # MI, MVO (independent sigmoids)
+# Multiclass baselines / M1 / M2: EMIDEC 5-class (pure MI ≠ infarct∪MVO)
+NUM_MULTICLASS_CLASSES = 5  # BG, LV, MYO, MI, MVO
+MULTICLASS_BG, MULTICLASS_LV, MULTICLASS_MYO, MULTICLASS_MI, MULTICLASS_MVO = 0, 1, 2, 3, 4
 ANATOMY_CLASS_NAMES = ["BG", "LV", "MYO"]
 PATHOLOGY_CLASS_NAMES = ["MI", "MVO"]
+MULTICLASS_CLASS_NAMES = ["BG", "LV", "MYO", "MI", "MVO"]
 # Anatomy CE weights (methodology Sec. 4.4.1; RV weight dropped)
 ANATOMY_CE_WEIGHTS = [0.1, 1.0, 1.5]  # BG, LV, MYO
+# Multiclass CE weights — MI weighted highest (primary thesis metric)
+MULTICLASS_CE_WEIGHTS = [0.1, 1.0, 1.0, 2.5, 2.0]  # BG, LV, MYO, MI, MVO
 
 # ---------------------------------------------------------------------------
 # Model / training (methodology Sec. 4.5)
@@ -93,7 +99,9 @@ SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
 DEFAULT_VARIANT = "M5"
-# External MONAI baselines (UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET)
+# External baselines (MONAI + real nnU-Net v2)
+# MONAI: UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES
+# Real:  NNUNET (nnU-Net v2, see src/nnunet_emidec.py)
 BASELINE_EPOCHS = 80
 # SwinUNETR is memory-heavy; default batch size for baselines if overridden via CLI
 BASELINE_BATCH_SIZE = 2
@@ -108,6 +116,13 @@ N_FOLDS = 5
 CV_INNER_VAL_FRAC = 0.15  # of train-pool only; test fold never used for val
 # In --cv mode ALL variants (ablation + baselines) use this — fair comparison
 CV_EPOCHS = 80
+
+# Real nnU-Net v2 paths (Dataset501_EMIDEC); created by src/nnunet_emidec.py
+NNUNET_DATASET_ID = 501
+NNUNET_DATASET_NAME = "EMIDEC"
+NNUNET_ROOT = ROOT / "nnunet_data"
+NNUNET_CONFIGURATION = "3d_fullres"
+NNUNET_TRAINER = "nnUNetTrainerAFDD80"  # 80 epochs = CV_EPOCHS
 
 # Official model identity (paper / thesis comparison)
 MODEL_NAME = "AFDD-Net"

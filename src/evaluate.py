@@ -21,7 +21,12 @@ import config as cfg
 from data.preprocess import EMIDECDataset
 from inference import postprocess_pathology
 from metrics import binary_metrics, summarize
-from model_identity import ABLATION_VARIANTS, BASELINE_VARIANTS, is_multiclass_variant
+from model_identity import (
+    ABLATION_VARIANTS,
+    MONAI_BASELINE_VARIANTS,
+    is_multiclass_variant,
+    is_real_nnunet,
+)
 from models.dual_decoder import build_model, count_parameters
 from train import _load_state_dict, collate
 
@@ -123,8 +128,12 @@ def run_eval(
         filters=tuple(cfg.BASE_FILTERS),
         detach_myo_gate=getattr(cfg, "DETACH_MYO_GATE", True),
         soft_myo_restrict=True,
-        use_disease_classifier=getattr(cfg, "USE_DISEASE_CLASSIFIER", True),
-        gate_pathology_by_disease=getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True),
+        use_disease_classifier=(
+            variant.upper() == "M5" and getattr(cfg, "USE_DISEASE_CLASSIFIER", True)
+        ),
+        gate_pathology_by_disease=(
+            variant.upper() == "M5" and getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True)
+        ),
         disease_threshold=getattr(cfg, "DISEASE_CLASS_THRESHOLD", 0.5),
     ).to(device)
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
@@ -134,13 +143,15 @@ def run_eval(
     anat_scores = {"LV": [], "MYO": []}
     path_scores = {"MI": [], "MVO": []}
     path_only = {"MI": [], "MVO": []}
-    multi_scores = {"LV": [], "MYO": [], "Infarct": []}
-    multi_path_only = {"Infarct": []}
+    multi_scores = {"LV": [], "MYO": [], "MI": [], "MVO": [], "Infarct": []}
+    multi_path_only = {"MI": [], "MVO": []}
     per_case = []
     times = []
     class_correct = 0
     class_total = 0
     hard_mask = bool(getattr(cfg, "HARD_MYO_MASK_AT_INFER", True))
+    mi_cls = int(getattr(cfg, "MULTICLASS_MI", 3))
+    mvo_cls = int(getattr(cfg, "MULTICLASS_MVO", 4))
     fig_dir = cfg.FIGURES_DIR / f"{variant}_{split_label}"
     if save_figs:
         fig_dir.mkdir(parents=True, exist_ok=True)
@@ -160,19 +171,29 @@ def run_eval(
             pred = out["multiclass_logits"].argmax(1)[0]
             if getattr(cfg, "MI_VOXEL_SUPPRESSION", True):
                 thr = int(getattr(cfg, "MIN_MI_VOXELS", 50))
-                infarct = pred == 3
-                if infarct.sum() < thr:
+                mi_vox = pred == mi_cls
+                if mi_vox.sum() < thr:
                     pred = pred.clone()
-                    pred[infarct] = 2
+                    pred[mi_vox] = 2
             pred = pred.cpu().numpy()
             gt = batch["multiclass"][0].numpy()
-            for cls, key in [(1, "LV"), (2, "MYO"), (3, "Infarct")]:
+            for cls, key in [(1, "LV"), (2, "MYO"), (mi_cls, "MI"), (mvo_cls, "MVO")]:
                 m = binary_metrics(pred == cls, gt == cls, spacing=cfg.TARGET_SPACING)
                 multi_scores[key].append(m)
                 case_row[key] = m
-            if (gt == 3).sum() > 0:
-                multi_path_only["Infarct"].append(case_row["Infarct"])
-            case_row["pathological"] = bool((gt == 3).sum() > 0)
+            inf_m = binary_metrics(
+                np.isin(pred, [mi_cls, mvo_cls]),
+                np.isin(gt, [mi_cls, mvo_cls]),
+                spacing=cfg.TARGET_SPACING,
+            )
+            multi_scores["Infarct"].append(inf_m)
+            case_row["Infarct"] = inf_m
+            is_path = _is_pathological_case(name, (gt == mi_cls).astype(np.float32))
+            is_path = is_path or bool((gt == mvo_cls).sum() > 0)
+            case_row["pathological"] = is_path
+            if is_path:
+                multi_path_only["MI"].append(case_row["MI"])
+                multi_path_only["MVO"].append(case_row["MVO"])
             if save_figs:
                 _save_overlay(
                     img[mid],
@@ -223,8 +244,10 @@ def run_eval(
 
     if is_multiclass_variant(variant):
         summary = {k: summarize(v) for k, v in multi_scores.items()}
-        if multi_path_only["Infarct"]:
-            summary["Infarct_pathological"] = summarize(multi_path_only["Infarct"])
+        if multi_path_only["MI"]:
+            summary["MI_pathological"] = summarize(multi_path_only["MI"])
+        if multi_path_only["MVO"]:
+            summary["MVO_pathological"] = summarize(multi_path_only["MVO"])
     else:
         summary = {
             "LV": summarize(anat_scores["LV"]),
@@ -259,17 +282,21 @@ def run_eval(
         encoding="utf-8",
     )
     print(json.dumps(summary, indent=2))
-    mi_all = _dice_mean(summary, "MI") or _dice_mean(summary, "Infarct")
-    mi_path = _dice_mean(summary, "MI_pathological") or _dice_mean(
-        summary, "Infarct_pathological"
-    )
+    mi_all = _dice_mean(summary, "MI")
+    mi_path = _dice_mean(summary, "MI_pathological")
     print("-" * 60)
     tag = f"{variant}" + (f" fold{fold}" if fold is not None else "")
-    print(f"{tag} [{split_label}] PRIMARY = MI_path (pathological only)")
+    print(f"{tag} [{split_label}] PRIMARY = MI_path (pathological only, pure MI)")
     if mi_path is not None:
         print(f"  MI_path: {mi_path:.4f}")
     if mi_all is not None:
         print(f"  MI_all:  {mi_all:.4f}")
+    mvo = _dice_mean(summary, "MVO")
+    if mvo is not None:
+        print(f"  MVO:     {mvo:.4f}")
+    infarct = _dice_mean(summary, "Infarct")
+    if infarct is not None:
+        print(f"  Infarct (MI∪MVO, secondary): {infarct:.4f}")
     if "disease_acc" in summary:
         print(f"  Disease classification accuracy: {summary['disease_acc']:.4f}")
     print(f"Saved -> {out_path}")
@@ -316,7 +343,15 @@ def run_cv_eval(
 
     print("=" * 60)
     print(f"{variant} 5-fold CV aggregate (mean ± std across folds)")
-    for key in ("LV", "MYO", "MI_pathological", "MI", "MVO", "Infarct", "Infarct_pathological"):
+    for key in (
+        "LV",
+        "MYO",
+        "MI_pathological",
+        "MI",
+        "MVO",
+        "MVO_pathological",
+        "Infarct",
+    ):
         block = aggregate.get(key, {}).get("dice")
         if block:
             print(f"  {key}: {block['mean']:.4f} ± {block['std']:.4f}")
@@ -382,25 +417,34 @@ def main():
     parser.add_argument(
         "--variant",
         default="M5",
-        help="M1-M5 / UNET|SEGRESNET|SWINUNETR|NNUNET|DYNUNET / comma-list",
+        help="M1-M5 / UNET|SEGRESNET|SWINUNETR|DYNUNET|DYNUNET_RES / comma-list. "
+        "Real nnU-Net: python -m src.nnunet_emidec eval",
     )
     parser.add_argument("--ckpt", default=None)
     parser.add_argument("--split", default="test")
     parser.add_argument("--all", action="store_true", help="Evaluate ablation M1-M5")
-    parser.add_argument("--baselines", action="store_true", help="Evaluate MONAI baselines")
+    parser.add_argument(
+        "--baselines",
+        action="store_true",
+        help="Evaluate MONAI baselines (not real nnU-Net)",
+    )
     parser.add_argument("--cv", action="store_true", help="Evaluate 5-fold CV and aggregate")
     parser.add_argument("--fold", type=int, default=None, help="Evaluate a single fold")
     parser.add_argument("--no-figs", action="store_true", help="Skip overlay figures")
     args = parser.parse_args()
 
     if args.all and args.baselines:
-        variants = list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS)
+        variants = list(ABLATION_VARIANTS) + list(MONAI_BASELINE_VARIANTS)
     elif args.all:
         variants = list(ABLATION_VARIANTS)
     elif args.baselines:
-        variants = list(BASELINE_VARIANTS)
+        variants = list(MONAI_BASELINE_VARIANTS)
     else:
         variants = [v.strip().upper() for v in args.variant.split(",") if v.strip()]
+        if any(is_real_nnunet(v) for v in variants):
+            raise SystemExit(
+                "NNUNET eval: python -m src.nnunet_emidec eval --cv"
+            )
 
     save_figs = not args.no_figs
     table = {}

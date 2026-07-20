@@ -99,8 +99,8 @@ class JointLoss(nn.Module):
     """
     L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo + λ_class * L_class
 
-    For M1/M2 and external baselines (UNET, SEGRESNET, SWINUNETR, NNUNET, DYNUNET):
-        Dice+WCE on 4-class multiclass only.
+    For M1/M2 and MONAI baselines (UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES):
+        Dice+WCE on 5-class multiclass (BG/LV/MYO/MI/MVO).
     For M3: anatomy + soft Dice-like pathology (α=β=0.5, γ=1).
     For M4/M5: FTL on pathology; M5 enables L_topo (curriculum-controlled).
     Disease BCE (L_class) when outputs contain disease_logits.
@@ -132,7 +132,15 @@ class JointLoss(nn.Module):
         self.use_gt_myo_for_topo = use_gt_myo_for_topo
         self.path_loss_on_pathological_only = path_loss_on_pathological_only
         self.anat_loss = DiceCELoss(num_anatomy, anatomy_weights)
-        self.multi_loss = DiceCELoss(4, torch.tensor([0.1, 1.0, 1.0, 2.5]))
+        # 5-class: BG / LV / MYO / MI / MVO (pure MI — matches EMIDEC SOTA reporting)
+        try:
+            import config as _cfg
+
+            n_multi = int(getattr(_cfg, "NUM_MULTICLASS_CLASSES", 5))
+            w_multi = list(getattr(_cfg, "MULTICLASS_CE_WEIGHTS", [0.1, 1.0, 1.0, 2.5, 2.0]))
+        except Exception:  # pragma: no cover
+            n_multi, w_multi = 5, [0.1, 1.0, 1.0, 2.5, 2.0]
+        self.multi_loss = DiceCELoss(n_multi, torch.tensor(w_multi, dtype=torch.float32))
         ch_w = torch.tensor([mi_channel_weight, mvo_channel_weight], dtype=torch.float32)
         if self.variant == "M3":
             self.path_loss = FocalTverskyLoss(

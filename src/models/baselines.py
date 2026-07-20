@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """External baseline segmentors (MONAI) for fair comparison with AFDD-Net.
 
-All baselines share the M1/M2 interface: single multiclass head
-  BG / LV / MYO / Infarct  (MI+MVO merged as class 3)
+All MONAI baselines share the M1/M2 interface: 5-class multiclass head
+  BG / LV / MYO / MI / MVO   (pure MI — matches EMIDEC / published SOTA)
 
 Variants:
-  UNET       - MONAI 3D UNet
-  SEGRESNET  - MONAI SegResNet
-  SWINUNETR  - MONAI SwinUNETR (depth padded 16->32 for /32 constraint)
-  NNUNET     - nnU-Net-style DynUNet (residual blocks, filters 32..320)
-  DYNUNET    - MONAI DynUNet (non-residual, filters 32..512)
+  UNET        - MONAI 3D UNet
+  SEGRESNET   - MONAI SegResNet
+  SWINUNETR   - MONAI SwinUNETR (depth padded 16->32 for /32 constraint)
+  DYNUNET     - MONAI DynUNet (non-residual, filters 32..512)
+  DYNUNET_RES - MONAI residual DynUNet (filters 32..320; formerly mislabeled nnU-Net)
+
+Real nnU-Net v2 is NOT built here — see src/nnunet_emidec.py (variant NNUNET).
 """
 from __future__ import annotations
 
@@ -26,8 +28,9 @@ except ImportError as exc:  # pragma: no cover
         "Baseline models require MONAI. Install with: pip install monai>=1.3"
     ) from exc
 
+import config as cfg
 
-NUM_MULTICLASS = 4  # BG, LV, MYO, Infarct
+NUM_MULTICLASS = int(getattr(cfg, "NUM_MULTICLASS_CLASSES", 5))
 
 
 class MulticlassWrapper(nn.Module):
@@ -104,8 +107,8 @@ def build_swinunetr(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Mod
     return MulticlassWrapper(SwinUNETRPadded(net, pad_d=32))
 
 
-def build_nnunet(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Module:
-    """nnU-Net-style 3D DynUNet (residual, classic filter ladder)."""
+def build_dynunet_res(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Module:
+    """MONAI residual DynUNet (nnU-Net-inspired filter ladder — not real nnU-Net)."""
     kernels, strides = _dynunet_strides_for_emidec()
     net = DynUNet(
         spatial_dims=3,
@@ -140,17 +143,25 @@ def build_dynunet(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Modul
     return MulticlassWrapper(net)
 
 
+# Backward-compatible alias (old code / checkpoints named NNUNET were this net)
+build_nnunet = build_dynunet_res
+
+
 BASELINE_BUILDERS = {
     "UNET": build_unet,
     "SEGRESNET": build_segresnet,
     "SWINUNETR": build_swinunetr,
-    "NNUNET": build_nnunet,
     "DYNUNET": build_dynunet,
+    "DYNUNET_RES": build_dynunet_res,
 }
 
 
 def build_baseline(variant: str, in_ch: int = 1, **_kwargs) -> nn.Module:
     key = variant.upper()
+    if key == "NNUNET":
+        raise ValueError(
+            "NNUNET is real nnU-Net v2 — train/eval via: python -m src.nnunet_emidec ..."
+        )
     if key not in BASELINE_BUILDERS:
         raise ValueError(f"Unknown baseline {variant}. Expected one of {list(BASELINE_BUILDERS)}")
     return BASELINE_BUILDERS[key](in_ch=in_ch)

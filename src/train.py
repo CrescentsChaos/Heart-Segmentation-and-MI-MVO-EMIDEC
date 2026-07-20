@@ -24,10 +24,11 @@ from losses.joint_loss import JointLoss
 from metrics import binary_metrics, summarize
 from model_identity import (
     ABLATION_VARIANTS,
-    BASELINE_VARIANTS,
     MODEL_NAME,
+    MONAI_BASELINE_VARIANTS,
     VARIANT_SHORT,
     is_multiclass_variant,
+    is_real_nnunet,
 )
 from models.dual_decoder import build_model, count_parameters
 
@@ -69,8 +70,10 @@ def topo_lambda_for_epoch(epoch: int) -> float:
 
 
 def _pathology_prediction(out, hard_mask: bool) -> torch.Tensor:
-    """Binary pathology after disease gate / hard MYO / voxel suppression."""
-    return postprocess_pathology(out, hard_mask=hard_mask)
+    """Binary pathology for train-val scoring (no sparse-MI suppress — checkpoint safe)."""
+    return postprocess_pathology(
+        out, hard_mask=hard_mask, use_voxel_suppress=False
+    )
 
 
 def _load_state_dict(
@@ -109,29 +112,62 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
     anat_scores = {"LV": [], "MYO": []}
     path_scores = {"MI": [], "MVO": []}
     path_only_mi = []
-    multi_scores = {"LV": [], "MYO": [], "Infarct": []}
+    path_only_mvo = []
+    multi_scores = {"LV": [], "MYO": [], "MI": [], "MVO": [], "Infarct": []}
+    multi_path_only_mi = []
+    multi_path_only_mvo = []
     class_correct = 0
     class_total = 0
+    # Do NOT apply sparse-MI suppression while selecting checkpoints — it can
+    # freeze all-empty infarct Dice at ~N_normal/N_val and save dead weights
+    # (SegResNet fold0 collapse). Suppression remains for final test eval.
+    apply_suppress = False
+    mi_cls = int(getattr(cfg, "MULTICLASS_MI", 3))
+    mvo_cls = int(getattr(cfg, "MULTICLASS_MVO", 4))
     for batch in loader:
         x = batch["image"].to(device)
         out = model(x)
         if is_multiclass_variant(variant):
             pred = out["multiclass_logits"].argmax(1)
-            # Sparse infarct suppression for multiclass baselines (Solution 3)
-            if getattr(cfg, "MI_VOXEL_SUPPRESSION", True):
+            if apply_suppress and getattr(cfg, "MI_VOXEL_SUPPRESSION", True):
                 thr = int(getattr(cfg, "MIN_MI_VOXELS", 50))
                 pred = pred.clone()
                 for b in range(pred.shape[0]):
-                    infarct = pred[b] == 3
-                    if infarct.sum() < thr:
-                        pred[b][infarct] = 2
+                    mi_vox = pred[b] == mi_cls
+                    if mi_vox.sum() < thr:
+                        pred[b][mi_vox] = 2
             pred_np = pred.cpu().numpy()
             gt = batch["multiclass"].numpy()
+            names = batch.get("name", [""] * pred_np.shape[0])
             for b in range(pred_np.shape[0]):
-                for cls, name in [(1, "LV"), (2, "MYO"), (3, "Infarct")]:
-                    multi_scores[name].append(
-                        binary_metrics(pred_np[b] == cls, gt[b] == cls, spacing=cfg.TARGET_SPACING)
-                    )
+                lv_m = binary_metrics(pred_np[b] == 1, gt[b] == 1, spacing=cfg.TARGET_SPACING)
+                myo_m = binary_metrics(pred_np[b] == 2, gt[b] == 2, spacing=cfg.TARGET_SPACING)
+                mi_m = binary_metrics(
+                    pred_np[b] == mi_cls, gt[b] == mi_cls, spacing=cfg.TARGET_SPACING
+                )
+                mvo_m = binary_metrics(
+                    pred_np[b] == mvo_cls, gt[b] == mvo_cls, spacing=cfg.TARGET_SPACING
+                )
+                inf_m = binary_metrics(
+                    np.isin(pred_np[b], [mi_cls, mvo_cls]),
+                    np.isin(gt[b], [mi_cls, mvo_cls]),
+                    spacing=cfg.TARGET_SPACING,
+                )
+                multi_scores["LV"].append(lv_m)
+                multi_scores["MYO"].append(myo_m)
+                multi_scores["MI"].append(mi_m)
+                multi_scores["MVO"].append(mvo_m)
+                multi_scores["Infarct"].append(inf_m)
+                is_path = bool((gt[b] == mi_cls).sum() > 0 or (gt[b] == mvo_cls).sum() > 0)
+                if "pathological" in batch:
+                    is_path = is_path or bool(batch["pathological"][b].item() > 0.5)
+                name = names[b] if b < len(names) else ""
+                if name:
+                    u = str(name).upper()
+                    is_path = is_path or u.startswith("CASE_P") or u.startswith("P")
+                if is_path:
+                    multi_path_only_mi.append(mi_m)
+                    multi_path_only_mvo.append(mvo_m)
         else:
             anat = out["anatomy_logits"].argmax(1).cpu().numpy()
             path = _pathology_prediction(out, hard_mask=hard_mask).cpu().numpy()
@@ -154,6 +190,7 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
                     is_path = is_path or bool(batch["pathological"][b].item() > 0.5)
                 if is_path:
                     path_only_mi.append(mi_m)
+                    path_only_mvo.append(mvo_m)
             # Disease classification accuracy
             if "disease_prob" in out and "pathological" in batch:
                 pred_c = (out["disease_prob"].view(-1) > getattr(cfg, "DISEASE_CLASS_THRESHOLD", 0.5)).float()
@@ -161,7 +198,12 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
                 class_correct += int((pred_c == gt_c).sum().item())
                 class_total += int(gt_c.numel())
     if is_multiclass_variant(variant):
-        return {k: summarize(v) for k, v in multi_scores.items()}
+        out_m = {k: summarize(v) for k, v in multi_scores.items()}
+        if multi_path_only_mi:
+            out_m["MI_pathological"] = summarize(multi_path_only_mi)
+        if multi_path_only_mvo:
+            out_m["MVO_pathological"] = summarize(multi_path_only_mvo)
+        return out_m
     out_m = {
         "LV": summarize(anat_scores["LV"]),
         "MYO": summarize(anat_scores["MYO"]),
@@ -170,6 +212,8 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
     }
     if path_only_mi:
         out_m["MI_pathological"] = summarize(path_only_mi)
+    if path_only_mvo:
+        out_m["MVO_pathological"] = summarize(path_only_mvo)
     if class_total > 0:
         out_m["disease_acc"] = class_correct / class_total
     return out_m
@@ -177,15 +221,27 @@ def evaluate_epoch(model, loader, device, variant: str, hard_mask: bool = True):
 
 def primary_score(metrics: dict, variant: str) -> float:
     """
-    Checkpoint selection: prefer pathological-only MI Dice when available
-    (matches EMIDEC reporting practice; avoids FP-on-normal zeros).
+    Checkpoint selection metric.
+
+    Prefer pathological-only *pure MI* Dice (thesis primary), but add a small
+    LV+MYO bonus so all-background models cannot lock on empty–empty Dice
+    (normals → 1.0) while anatomy is still zero — the SegResNet fold-0 bug.
     """
-    if not is_multiclass_variant(variant) and "MI_pathological" in metrics:
-        return float(metrics["MI_pathological"]["dice"]["mean"])
-    key = "Infarct" if is_multiclass_variant(variant) else "MI"
-    if key not in metrics or "dice" not in metrics[key]:
+    lv = float(metrics.get("LV", {}).get("dice", {}).get("mean", 0.0) or 0.0)
+    myo = float(metrics.get("MYO", {}).get("dice", {}).get("mean", 0.0) or 0.0)
+    anat_bonus = 0.05 * (lv + myo)
+
+    if "MI_pathological" in metrics:
+        mi_p = float(metrics["MI_pathological"]["dice"]["mean"])
+        return mi_p + anat_bonus
+
+    # Legacy fallbacks
+    if "Infarct_pathological" in metrics:
+        return float(metrics["Infarct_pathological"]["dice"]["mean"]) + anat_bonus
+    key = "MI" if "MI" in metrics else ("Infarct" if "Infarct" in metrics else None)
+    if key is None or "dice" not in metrics[key]:
         return -1.0
-    return float(metrics[key]["dice"]["mean"])
+    return float(metrics[key]["dice"]["mean"]) + anat_bonus
 
 
 def _maybe_warm_start(
@@ -219,7 +275,7 @@ def _default_batch_size(variant: str, cli_batch: int | None) -> int:
         return cli_batch
     if variant == "SWINUNETR":
         return int(getattr(cfg, "SWINUNETR_BATCH_SIZE", 1))
-    if variant in BASELINE_VARIANTS:
+    if variant in MONAI_BASELINE_VARIANTS:
         return int(getattr(cfg, "BASELINE_BATCH_SIZE", cfg.BATCH_SIZE))
     return int(cfg.BATCH_SIZE)
 
@@ -270,8 +326,13 @@ def train_variant(
         in_ch=cfg.IN_CHANNELS,
         detach_myo_gate=getattr(cfg, "DETACH_MYO_GATE", True),
         soft_myo_restrict=True,
-        use_disease_classifier=getattr(cfg, "USE_DISEASE_CLASSIFIER", True),
-        gate_pathology_by_disease=getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True),
+        # Disease classifier is M5-only (build_model also enforces this)
+        use_disease_classifier=(
+            variant == "M5" and getattr(cfg, "USE_DISEASE_CLASSIFIER", True)
+        ),
+        gate_pathology_by_disease=(
+            variant == "M5" and getattr(cfg, "GATE_PATHOLOGY_BY_DISEASE", True)
+        ),
         disease_threshold=getattr(cfg, "DISEASE_CLASS_THRESHOLD", 0.5),
     ).to(device)
     # M5 default: warm-start from M4 (same fold under CV)
@@ -345,11 +406,14 @@ def train_variant(
         history.append(row)
         tag = f"{variant}" + (f"/f{fold}" if fold is not None else "")
         if is_multiclass_variant(variant):
+            path_mi = val_metrics.get("MI_pathological", {}).get("dice", {}).get("mean", float("nan"))
             msg = (
                 f"[{tag}] ep {epoch:03d}/{epochs}  loss={row['loss']:.4f}  "
                 f"LV={val_metrics['LV']['dice']['mean']:.3f}  "
                 f"MYO={val_metrics['MYO']['dice']['mean']:.3f}  "
-                f"Infarct={val_metrics['Infarct']['dice']['mean']:.3f}  "
+                f"MI={val_metrics['MI']['dice']['mean']:.3f}  "
+                f"MI_path={path_mi:.3f}  "
+                f"MVO={val_metrics['MVO']['dice']['mean']:.3f}  "
                 f"({row['sec']:.1f}s)"
             )
         else:
@@ -379,14 +443,17 @@ def train_variant(
                     "metrics": val_metrics,
                     "params": n_params,
                     "lambda_topo": lam,
-                    "use_disease_classifier": getattr(cfg, "USE_DISEASE_CLASSIFIER", True),
+                    "use_disease_classifier": (
+                        variant == "M5" and getattr(cfg, "USE_DISEASE_CLASSIFIER", True)
+                    ),
                     "protocol": "5-fold-cv" if fold is not None else "single-split",
+                    "primary_metric": "MI_pathological + 0.05*(LV+MYO)",
                 },
                 best_path,
             )
             print(
                 f"  [ok] saved best -> {best_path.name} "
-                f"(primary MI_path Dice={best_mi:.4f} | val pathological)"
+                f"(primary={best_mi:.4f} | MI_path + anat bonus)"
             )
     hist_path = cfg.RESULTS_DIR / history_name(variant, fold)
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -400,10 +467,20 @@ def _resolve_variants(spec: str) -> list[str]:
     if s == "all":
         return list(ABLATION_VARIANTS)
     if s in ("baselines", "baseline"):
-        return list(BASELINE_VARIANTS)
+        # MONAI only here; real nnU-Net via: python -m src.nnunet_emidec
+        return list(MONAI_BASELINE_VARIANTS)
     if s == "everything":
-        return list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS)
-    return [v.strip().upper() for v in spec.split(",") if v.strip()]
+        return list(ABLATION_VARIANTS) + list(MONAI_BASELINE_VARIANTS)
+    variants = [v.strip().upper() for v in spec.split(",") if v.strip()]
+    if any(is_real_nnunet(v) for v in variants):
+        raise SystemExit(
+            "NNUNET (real nnU-Net v2) is trained via:\n"
+            "  python -m src.nnunet_emidec prepare\n"
+            "  python -m src.nnunet_emidec train --cv\n"
+            "  python -m src.nnunet_emidec eval --cv\n"
+            "MONAI DynUNet-Res is variant DYNUNET_RES."
+        )
+    return variants
 
 
 def main():
@@ -411,8 +488,9 @@ def main():
     parser.add_argument(
         "--variant",
         default="M5",
-        help="M1-M5, UNET|SEGRESNET|SWINUNETR|NNUNET|DYNUNET, "
-        "comma-list, 'all' (ablation), 'baselines', or 'everything'",
+        help="M1-M5, UNET|SEGRESNET|SWINUNETR|DYNUNET|DYNUNET_RES, "
+        "comma-list, 'all' (ablation), 'baselines' (MONAI), or 'everything'. "
+        "Real nnU-Net: python -m src.nnunet_emidec",
     )
     parser.add_argument(
         "--epochs",
@@ -529,7 +607,7 @@ def main():
         for v in variants:
             if args.epochs is not None:
                 epochs = args.epochs
-            elif v in BASELINE_VARIANTS:
+            elif v in MONAI_BASELINE_VARIANTS:
                 epochs = int(getattr(cfg, "BASELINE_EPOCHS", 80))
             else:
                 epochs = int(cfg.EPOCHS)

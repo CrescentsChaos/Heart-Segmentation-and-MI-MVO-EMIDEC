@@ -66,8 +66,7 @@ def _collect_rows(variants: list[str], split: str = "test", use_cv: bool = False
             )
             continue
         multi = is_multiclass_variant(v)
-        mi_key = "Infarct" if multi else "MI"
-        mi_path_key = "Infarct_pathological" if multi else "MI_pathological"
+        # Primary thesis metric: pure MI (pathological); Infarct kept only as secondary
         rows.append(
             {
                 "variant": v,
@@ -76,12 +75,13 @@ def _collect_rows(variants: list[str], split: str = "test", use_cv: bool = False
                 "LV_std": _dice_std(s, "LV") if use_cv else None,
                 "MYO": _dice(s, "MYO"),
                 "MYO_std": _dice_std(s, "MYO") if use_cv else None,
-                "MI": _dice(s, mi_key),
-                "MI_std": _dice_std(s, mi_key) if use_cv else None,
-                "MI_path": _dice(s, mi_path_key),
-                "MI_path_std": _dice_std(s, mi_path_key) if use_cv else None,
-                "MVO": None if multi else _dice(s, "MVO"),
-                "MVO_std": None if multi else (_dice_std(s, "MVO") if use_cv else None),
+                "MI": _dice(s, "MI"),
+                "MI_std": _dice_std(s, "MI") if use_cv else None,
+                "MI_path": _dice(s, "MI_pathological"),
+                "MI_path_std": _dice_std(s, "MI_pathological") if use_cv else None,
+                "MVO": _dice(s, "MVO"),
+                "MVO_std": _dice_std(s, "MVO") if use_cv else None,
+                "Infarct": _dice(s, "Infarct") if multi else None,
                 "params_M": s.get("params_M"),
                 "inference_ms": s.get("inference_ms_mean"),
                 "protocol": "5-fold-cv" if use_cv else "single-split",
@@ -201,17 +201,16 @@ def _write_per_fold_csv(path: Path, variants: list[str]) -> int:
         multi = is_multiclass_variant(v)
         for item in data.get("folds", []):
             s = item.get("summary", {})
-            mi_key = "Infarct" if multi else "MI"
-            mi_path_key = "Infarct_pathological" if multi else "MI_pathological"
             rows_out.append(
                 {
                     "variant": v,
                     "fold": item.get("fold"),
                     "LV": _dice(s, "LV"),
                     "MYO": _dice(s, "MYO"),
-                    "MI_path": _dice(s, mi_path_key),
-                    "MI_all": _dice(s, mi_key),
-                    "MVO": None if multi else _dice(s, "MVO"),
+                    "MI_path": _dice(s, "MI_pathological"),
+                    "MI_all": _dice(s, "MI"),
+                    "MVO": _dice(s, "MVO"),
+                    "Infarct": _dice(s, "Infarct") if multi else None,
                     "params_M": s.get("params_M"),
                     "n_cases": s.get("n_cases"),
                 }
@@ -257,9 +256,12 @@ def main():
             f"EMIDEC-only SOTA. Target: {MODEL_NAME} MI_path Dice > {TARGET_MI_DICE} "
             f"({TARGET_MI_DICE_LABEL}); stretch > 0.783 (ICPIU-Net 5-fold). "
             f"Protocol: {protocol}. "
-            "PRIMARY: MI_path (pathological only). "
+            "PRIMARY: MI_path = pure MI Dice on pathological cases only "
+            "(EMIDEC label 3; not infarct∪MVO). "
             "Under --cv, values are mean±std across 5 folds. "
-            "All models share Dataset/folds.json and CV_EPOCHS."
+            "All models share Dataset/folds.json and CV_EPOCHS. "
+            "MONAI baselines + M1/M2 use 5-class heads (BG/LV/MYO/MI/MVO). "
+            "NNUNET row is real nnU-Net v2 (src/nnunet_emidec.py)."
         ),
     }
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -289,9 +291,9 @@ def main():
         n_fold_rows = 0
 
     print(f"{MODEL_NAME} results | {protocol}")
-    print("PRIMARY thesis metric = MI_path (pathological only).")
+    print("PRIMARY thesis metric = MI_path (pure MI, pathological only).")
     _print_table(f"{MODEL_NAME} ablation", ablation_rows, use_cv=use_cv)
-    _print_table("External baselines (MONAI)", baseline_rows, use_cv=use_cv)
+    _print_table("External baselines (MONAI + nnU-Net)", baseline_rows, use_cv=use_cv)
     print(f"\nSaved JSON -> {path}")
     for p in csv_paths:
         print(f"Saved CSV  -> {p}")
