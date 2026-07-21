@@ -1,0 +1,3 @@
+-r requirements.txt
+-r requirements-modern-baselines.txt
+pytest>=9

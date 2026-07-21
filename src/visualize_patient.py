@@ -392,7 +392,11 @@ def save_patient_report(
 def main():
     parser = argparse.ArgumentParser(description="Visualize LV/MYO/MI/MVO for one EMIDEC patient")
     parser.add_argument("--case", required=True, help="Patient id, e.g. P001, Case_P001, N006")
-    parser.add_argument("--variant", default=None, help="Model variant M1-M5 (default: best available)")
+    parser.add_argument(
+        "--variant",
+        default=None,
+        help="M1-M5 or registered PyTorch baseline (default: best available)",
+    )
     parser.add_argument("--device", default=None, help="cuda|cpu (default: cuda if free else cpu)")
     parser.add_argument("--all-slices", action="store_true", help="Also save full-slice montage")
     parser.add_argument("--out", default=None, help="Output directory")

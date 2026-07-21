@@ -260,7 +260,7 @@ def main():
             "(EMIDEC label 3; not infarct∪MVO). "
             "Under --cv, values are mean±std across 5 folds. "
             "All models share Dataset/folds.json and CV_EPOCHS. "
-            "MONAI baselines + M1/M2 use 5-class heads (BG/LV/MYO/MI/MVO). "
+            "PyTorch baselines + M1/M2 use 5-class heads (BG/LV/MYO/MI/MVO). "
             "NNUNET row is real nnU-Net v2 (src/nnunet_emidec.py)."
         ),
     }
@@ -293,7 +293,7 @@ def main():
     print(f"{MODEL_NAME} results | {protocol}")
     print("PRIMARY thesis metric = MI_path (pure MI, pathological only).")
     _print_table(f"{MODEL_NAME} ablation", ablation_rows, use_cv=use_cv)
-    _print_table("External baselines (MONAI + nnU-Net)", baseline_rows, use_cv=use_cv)
+    _print_table("External baselines (PyTorch + nnU-Net)", baseline_rows, use_cv=use_cv)
     print(f"\nSaved JSON -> {path}")
     for p in csv_paths:
         print(f"Saved CSV  -> {p}")

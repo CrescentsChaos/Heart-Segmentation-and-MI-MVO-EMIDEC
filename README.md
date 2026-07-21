@@ -17,7 +17,7 @@ All models share the **same** `Dataset/folds.json` and **same** epoch budget (`C
 pip install -r requirements.txt
 python -m src.data.preprocess                 # rebuild npz (5-class MI/MVO)
 python -m src.data.preprocess --folds-only    # keep existing folds.json
-python -m src.train --variant everything --cv # M1–M5 + MONAI baselines
+python -m src.train --variant everything --cv # M1–M5 + installed PyTorch baselines
 python -m src.evaluate --all --baselines --cv --no-figs
 python -m src.make_tables --cv
 python -m src.paper_figures
@@ -36,7 +36,7 @@ python -m src.make_tables --cv
 CSVs under `results/paper/`:
 - `cv_all_metrics.csv` — all models (mean ± std)
 - `cv_ablation_metrics.csv` — M1–M5
-- `cv_baseline_metrics.csv` — MONAI + nnU-Net
+- `cv_baseline_metrics.csv` — PyTorch baselines + nnU-Net
 - `cv_per_fold_metrics.csv`
 
 ## Ablation notes (important)
@@ -55,9 +55,23 @@ CSVs under `results/paper/`:
 |-----|------------|
 | `UNET` / `SEGRESNET` / `SWINUNETR` / `DYNUNET` | MONAI nets, 5-class pure MI |
 | `DYNUNET_RES` | MONAI residual DynUNet (formerly mislabeled “nnU-Net”) |
+| `SWINUNETR_V2` | MONAI SwinUNETR with stage residual convolutions |
+| `MEDNEXT` | Official MIC-DKFZ MedNeXt-S |
+| `UXNET3D` | Official MASILab 3D UX-Net |
+| `UMAMBA_ENC` | Official U-Mamba Enc (Linux/WSL2 CUDA) |
+| `SEGMAMBA` | Official external SegMamba (Linux/WSL2 CUDA) |
 | `NNUNET` | **Real** nnU-Net v2 (`src/nnunet_emidec.py`) |
 
 Under `--cv`, every PyTorch model trains **80 epochs**. Real nnU-Net uses `nnUNetTrainerAFDD80` (also 80 epochs).
+
+Prepare the official optional model sources before training:
+
+```bash
+python scripts/setup_modern_baselines.py mednext uxnet3d --install
+python scripts/setup_modern_baselines.py umamba segmamba
+```
+
+See `docs/MODERN_BASELINES.md` for pinned revisions and Mamba CUDA setup.
 
 ## Checkpoint selection (SegResNet fix)
 

@@ -23,7 +23,7 @@ from inference import postprocess_pathology
 from metrics import binary_metrics, summarize
 from model_identity import (
     ABLATION_VARIANTS,
-    MONAI_BASELINE_VARIANTS,
+    PYTORCH_BASELINE_VARIANTS,
     is_multiclass_variant,
     is_real_nnunet,
 )
@@ -417,7 +417,7 @@ def main():
     parser.add_argument(
         "--variant",
         default="M5",
-        help="M1-M5 / UNET|SEGRESNET|SWINUNETR|DYNUNET|DYNUNET_RES / comma-list. "
+        help="M1-M5 / registered PyTorch baseline / comma-list. "
         "Real nnU-Net: python -m src.nnunet_emidec eval",
     )
     parser.add_argument("--ckpt", default=None)
@@ -426,7 +426,7 @@ def main():
     parser.add_argument(
         "--baselines",
         action="store_true",
-        help="Evaluate MONAI baselines (not real nnU-Net)",
+        help="Evaluate registered PyTorch baselines (not real nnU-Net)",
     )
     parser.add_argument("--cv", action="store_true", help="Evaluate 5-fold CV and aggregate")
     parser.add_argument("--fold", type=int, default=None, help="Evaluate a single fold")
@@ -434,11 +434,11 @@ def main():
     args = parser.parse_args()
 
     if args.all and args.baselines:
-        variants = list(ABLATION_VARIANTS) + list(MONAI_BASELINE_VARIANTS)
+        variants = list(ABLATION_VARIANTS) + list(PYTORCH_BASELINE_VARIANTS)
     elif args.all:
         variants = list(ABLATION_VARIANTS)
     elif args.baselines:
-        variants = list(MONAI_BASELINE_VARIANTS)
+        variants = list(PYTORCH_BASELINE_VARIANTS)
     else:
         variants = [v.strip().upper() for v in args.variant.split(",") if v.strip()]
         if any(is_real_nnunet(v) for v in variants):

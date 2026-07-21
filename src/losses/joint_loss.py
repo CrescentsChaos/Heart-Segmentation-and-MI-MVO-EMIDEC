@@ -99,7 +99,7 @@ class JointLoss(nn.Module):
     """
     L_total = L_anat + λ_ftl * L_FTL + λ_topo * L_topo + λ_class * L_class
 
-    For M1/M2 and MONAI baselines (UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES):
+    For M1/M2 and registered PyTorch baselines:
         Dice+WCE on 5-class multiclass (BG/LV/MYO/MI/MVO).
     For M3: anatomy + soft Dice-like pathology (α=β=0.5, γ=1).
     For M4/M5: FTL on pathology; M5 enables L_topo (curriculum-controlled).

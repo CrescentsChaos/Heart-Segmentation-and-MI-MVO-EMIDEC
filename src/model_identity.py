@@ -23,8 +23,13 @@ VARIANT_NAMES = {
     "UNET": "3D UNet (MONAI)",
     "SEGRESNET": "SegResNet (MONAI)",
     "SWINUNETR": "SwinUNETR (MONAI)",
+    "SWINUNETR_V2": "SwinUNETR-V2 (MONAI)",
     "DYNUNET": "DynUNet (MONAI)",
     "DYNUNET_RES": "DynUNet-Res (MONAI)",
+    "MEDNEXT": "MedNeXt-S (MIC-DKFZ)",
+    "UXNET3D": "3D UX-Net (MASILab)",
+    "UMAMBA_ENC": "U-Mamba Enc (official)",
+    "SEGMAMBA": "SegMamba (official, external)",
     "NNUNET": "nnU-Net v2 (Isensee)",
 }
 
@@ -37,20 +42,38 @@ VARIANT_SHORT = {
     "UNET": "UNet",
     "SEGRESNET": "SegResNet",
     "SWINUNETR": "SwinUNETR",
+    "SWINUNETR_V2": "SwinUNETR-V2",
     "DYNUNET": "DynUNet",
     "DYNUNET_RES": "DynUNet-Res",
+    "MEDNEXT": "MedNeXt-S",
+    "UXNET3D": "3D UX-Net",
+    "UMAMBA_ENC": "U-Mamba Enc",
+    "SEGMAMBA": "SegMamba",
     "NNUNET": "nnU-Net",
 }
 
 ABLATION_VARIANTS = ["M1", "M2", "M3", "M4", "M5"]
-# MONAI + real nnU-Net (NNUNET trained via src/nnunet_emidec.py)
-MONAI_BASELINE_VARIANTS = ["UNET", "SEGRESNET", "SWINUNETR", "DYNUNET", "DYNUNET_RES"]
-BASELINE_VARIANTS = MONAI_BASELINE_VARIANTS + ["NNUNET"]
+# Native PyTorch + external nnU-Net (NNUNET trained via src/nnunet_emidec.py)
+PYTORCH_BASELINE_VARIANTS = [
+    "UNET",
+    "SEGRESNET",
+    "SWINUNETR",
+    "SWINUNETR_V2",
+    "DYNUNET",
+    "DYNUNET_RES",
+    "MEDNEXT",
+    "UXNET3D",
+    "UMAMBA_ENC",
+    "SEGMAMBA",
+]
+# Backward-compatible name for older scripts.
+MONAI_BASELINE_VARIANTS = PYTORCH_BASELINE_VARIANTS
+BASELINE_VARIANTS = PYTORCH_BASELINE_VARIANTS + ["NNUNET"]
 ALL_VARIANTS = ABLATION_VARIANTS + BASELINE_VARIANTS
 
 # Single-decoder 5-class (BG/LV/MYO/MI/MVO) — shared train/eval path
 # NNUNET is external but reports the same MI metrics
-MULTICLASS_VARIANTS = frozenset({"M1", "M2", *MONAI_BASELINE_VARIANTS, "NNUNET"})
+MULTICLASS_VARIANTS = frozenset({"M1", "M2", *PYTORCH_BASELINE_VARIANTS, "NNUNET"})
 
 
 def is_multiclass_variant(variant: str) -> bool:
@@ -58,7 +81,7 @@ def is_multiclass_variant(variant: str) -> bool:
 
 
 def is_monai_baseline(variant: str) -> bool:
-    return variant.upper() in MONAI_BASELINE_VARIANTS
+    return variant.upper() in {"UNET", "SEGRESNET", "SWINUNETR", "SWINUNETR_V2", "DYNUNET", "DYNUNET_RES"}
 
 
 def is_real_nnunet(variant: str) -> bool:

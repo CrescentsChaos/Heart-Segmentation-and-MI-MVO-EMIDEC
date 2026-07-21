@@ -99,13 +99,22 @@ SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
 DEFAULT_VARIANT = "M5"
-# External baselines (MONAI + real nnU-Net v2)
-# MONAI: UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES
+# External baselines (native PyTorch + real nnU-Net v2)
 # Real:  NNUNET (nnU-Net v2, see src/nnunet_emidec.py)
 BASELINE_EPOCHS = 80
-# SwinUNETR is memory-heavy; default batch size for baselines if overridden via CLI
+# Official external architecture checkouts (created by setup_modern_baselines.py)
+THIRD_PARTY_MODEL_DIR = ROOT / "third_party"
+# Default batch sizes; CLI --batch-size always overrides these.
 BASELINE_BATCH_SIZE = 2
 SWINUNETR_BATCH_SIZE = 1
+BASELINE_BATCH_SIZES = {
+    "SWINUNETR": 1,
+    "SWINUNETR_V2": 1,
+    "MEDNEXT": 1,
+    "UXNET3D": 1,
+    "UMAMBA_ENC": 1,
+    "SEGMAMBA": 1,
+}
 
 # ---------------------------------------------------------------------------
 # 5-fold CV (primary protocol for SOTA-comparable Dice reporting)

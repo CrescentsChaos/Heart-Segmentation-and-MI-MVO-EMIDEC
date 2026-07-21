@@ -1,0 +1,9 @@
+# Cross-platform dependencies for MedNeXt, 3D UX-Net, and SwinUNETR-V2.
+timm>=0.9
+dynamic-network-architectures>=0.3
+
+# U-Mamba and SegMamba additionally require CUDA extensions. Install them
+# under Linux/WSL2 using docs/MODERN_BASELINES.md; do not install blindly on
+# native Windows:
+#   causal-conv1d>=1.2.0
+#   mamba-ssm

@@ -1,4 +1,4 @@
-"""Train AFDD-Net ablation (M1-M5) and MONAI baselines on EMIDEC."""
+"""Train AFDD-Net ablation (M1-M5) and PyTorch baselines on EMIDEC."""
 from __future__ import annotations
 
 import argparse
@@ -25,7 +25,7 @@ from metrics import binary_metrics, summarize
 from model_identity import (
     ABLATION_VARIANTS,
     MODEL_NAME,
-    MONAI_BASELINE_VARIANTS,
+    PYTORCH_BASELINE_VARIANTS,
     VARIANT_SHORT,
     is_multiclass_variant,
     is_real_nnunet,
@@ -273,9 +273,10 @@ def _maybe_warm_start(
 def _default_batch_size(variant: str, cli_batch: int | None) -> int:
     if cli_batch is not None:
         return cli_batch
-    if variant == "SWINUNETR":
-        return int(getattr(cfg, "SWINUNETR_BATCH_SIZE", 1))
-    if variant in MONAI_BASELINE_VARIANTS:
+    per_model = getattr(cfg, "BASELINE_BATCH_SIZES", {})
+    if variant in per_model:
+        return int(per_model[variant])
+    if variant in PYTORCH_BASELINE_VARIANTS:
         return int(getattr(cfg, "BASELINE_BATCH_SIZE", cfg.BATCH_SIZE))
     return int(cfg.BATCH_SIZE)
 
@@ -467,10 +468,10 @@ def _resolve_variants(spec: str) -> list[str]:
     if s == "all":
         return list(ABLATION_VARIANTS)
     if s in ("baselines", "baseline"):
-        # MONAI only here; real nnU-Net via: python -m src.nnunet_emidec
-        return list(MONAI_BASELINE_VARIANTS)
+        # Native PyTorch only here; real nnU-Net via src.nnunet_emidec.
+        return list(PYTORCH_BASELINE_VARIANTS)
     if s == "everything":
-        return list(ABLATION_VARIANTS) + list(MONAI_BASELINE_VARIANTS)
+        return list(ABLATION_VARIANTS) + list(PYTORCH_BASELINE_VARIANTS)
     variants = [v.strip().upper() for v in spec.split(",") if v.strip()]
     if any(is_real_nnunet(v) for v in variants):
         raise SystemExit(
@@ -488,8 +489,8 @@ def main():
     parser.add_argument(
         "--variant",
         default="M5",
-        help="M1-M5, UNET|SEGRESNET|SWINUNETR|DYNUNET|DYNUNET_RES, "
-        "comma-list, 'all' (ablation), 'baselines' (MONAI), or 'everything'. "
+        help="M1-M5 or a registered PyTorch baseline; comma-list, 'all' "
+        "(ablation), 'baselines', or 'everything'. "
         "Real nnU-Net: python -m src.nnunet_emidec",
     )
     parser.add_argument(
@@ -499,8 +500,12 @@ def main():
         help="Epochs (CV default: config.CV_EPOCHS for ALL models; "
         "single-split: EPOCHS / BASELINE_EPOCHS)",
     )
-    parser.add_argument("--batch-size", type=int, default=None,
-                        help="Override batch size (SwinUNETR defaults to 1)")
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=None,
+        help="Override model-specific default batch size",
+    )
     parser.add_argument(
         "--init-from",
         default=None,
@@ -607,7 +612,7 @@ def main():
         for v in variants:
             if args.epochs is not None:
                 epochs = args.epochs
-            elif v in MONAI_BASELINE_VARIANTS:
+            elif v in PYTORCH_BASELINE_VARIANTS:
                 epochs = int(getattr(cfg, "BASELINE_EPOCHS", 80))
             else:
                 epochs = int(cfg.EPOCHS)

@@ -282,8 +282,9 @@ def build_model(variant: str, **kwargs) -> nn.Module:
           + disease classification head (normal vs pathological prior)
             NOTE: classifier is M5-only (not enabled for M3/M4).
 
-    External MONAI baselines (5-class BG/LV/MYO/MI/MVO):
-      UNET, SEGRESNET, SWINUNETR, DYNUNET, DYNUNET_RES
+    External PyTorch baselines (5-class BG/LV/MYO/MI/MVO):
+      UNET, SEGRESNET, SWINUNETR, SWINUNETR_V2, DYNUNET,
+      DYNUNET_RES, MEDNEXT, UXNET3D, UMAMBA_ENC, SEGMAMBA
     Real nnU-Net v2: variant NNUNET via src/nnunet_emidec.py
     """
     import config as cfg
@@ -325,7 +326,7 @@ def build_model(variant: str, **kwargs) -> nn.Module:
             "NNUNET is real nnU-Net v2. Use: python -m src.nnunet_emidec prepare|train|eval"
         )
     if variant in BASELINE_BUILDERS:
-        return build_baseline(variant, in_ch=in_ch)
+        return build_baseline(variant, in_ch=in_ch, num_classes=n_multi)
     raise ValueError(
         f"Unknown variant {variant}. Expected M1-M5 or "
         f"{', '.join(list(BASELINE_BUILDERS) + ['NNUNET'])}."
