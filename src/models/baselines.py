@@ -15,6 +15,7 @@ Real nnU-Net v2 is NOT built here — see src/nnunet_emidec.py (variant NNUNET).
 """
 from __future__ import annotations
 
+import inspect
 from typing import Dict
 
 import torch
@@ -95,15 +96,17 @@ def build_segresnet(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Mod
 
 
 def build_swinunetr(in_ch: int = 1, num_classes: int = NUM_MULTICLASS) -> nn.Module:
-    # img_size kept for MONAI 1.4 constructor; padded D=32 satisfies /32 rule
-    net = SwinUNETR(
-        img_size=(32, 128, 128),
+    # MONAI <=1.4 requires img_size; newer releases removed that argument.
+    kwargs = dict(
         in_channels=in_ch,
         out_channels=num_classes,
         feature_size=24,
         spatial_dims=3,
         use_checkpoint=False,
     )
+    if "img_size" in inspect.signature(SwinUNETR).parameters:
+        kwargs["img_size"] = (32, 128, 128)
+    net = SwinUNETR(**kwargs)
     return MulticlassWrapper(SwinUNETRPadded(net, pad_d=32))
 
 

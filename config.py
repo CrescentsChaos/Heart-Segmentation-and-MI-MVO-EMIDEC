@@ -6,7 +6,7 @@ from pathlib import Path
 
 # ---------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent
-EMIDEC_ROOT = Path(r"E:\emidec-dataset-1.0.1")
+EMIDEC_ROOT = ROOT / "Dataset"
 DATASET_DIR = ROOT / "Dataset"
 CHECKPOINT_DIR = ROOT / "checkpoints"
 RESULTS_DIR = ROOT / "results"
