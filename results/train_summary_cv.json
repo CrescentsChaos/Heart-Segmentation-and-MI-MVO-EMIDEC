@@ -1,10 +1,42 @@
 {
-  "SEGRESNET_fold0": {
-    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\SEGRESNET_fold0_best.pth",
-    "best_mi_dice": 0.01022272691046664,
-    "params": 4700965,
-    "epochs": 3,
+  "DYNUNET_fold0": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold0_best.pth",
+    "best_mi_dice": 0.5138466073276979,
+    "params": 22572037,
+    "epochs": 80,
     "fold": 0,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold1": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold1_best.pth",
+    "best_mi_dice": 0.4286701068688298,
+    "params": 22572037,
+    "epochs": 80,
+    "fold": 1,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold2": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold2_best.pth",
+    "best_mi_dice": 0.41810456690855025,
+    "params": 22572037,
+    "epochs": 80,
+    "fold": 2,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold3": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold3_best.pth",
+    "best_mi_dice": 0.4516040340289761,
+    "params": 22572037,
+    "epochs": 80,
+    "fold": 3,
+    "protocol": "5-fold-cv"
+  },
+  "DYNUNET_fold4": {
+    "best_ckpt": "E:\\Thesis Dataset 3\\checkpoints\\DYNUNET_fold4_best.pth",
+    "best_mi_dice": 0.3622847077146178,
+    "params": 22572037,
+    "epochs": 80,
+    "fold": 4,
     "protocol": "5-fold-cv"
   }
 }

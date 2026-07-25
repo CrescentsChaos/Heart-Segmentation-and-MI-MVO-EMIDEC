@@ -1,0 +1,12 @@
+{
+  "variant": "SEGMAMBA",
+  "protocol": "5-fold stratified CV (same folds for all models)",
+  "n_folds_requested": 5,
+  "n_folds_evaluated": 0,
+  "seed": 42,
+  "primary_metric": "foreground_mean",
+  "folds": [],
+  "aggregate": {
+    "foreground_mean": null
+  }
+}

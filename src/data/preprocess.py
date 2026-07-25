@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # src/
 import config as cfg
+from src.augmentations import augment_sample
 
 def resample_volume(volume, zooms, target_spacing=cfg.TARGET_SPACING, order=3):
     scale = [zooms[i] / target_spacing[i] for i in range(3)]
@@ -62,65 +63,12 @@ def build_targets(raw_mask: np.ndarray) -> Dict[str, np.ndarray]:
         "raw": raw_mask.astype(np.uint8),
     }
 
-# ----------------------------- Augmentations ---------------------------------
-
-def rotate_volume(image, anatomy, pathology, multiclass, angle_range=(-15, 15)):
-    angle = np.random.uniform(*angle_range)
-    kw = dict(axes=(0, 1), reshape=False, mode="constant")
-    image = ndimage.rotate(image, angle, order=3, cval=0.0, **kw)
-    anatomy = ndimage.rotate(anatomy, angle, order=0, cval=0, **kw)
-    multiclass = ndimage.rotate(multiclass, angle, order=0, cval=0, **kw)
-    p0 = ndimage.rotate(pathology[..., 0], angle, order=0, cval=0, **kw)
-    p1 = ndimage.rotate(pathology[..., 1], angle, order=0, cval=0, **kw)
-    pathology = np.stack([p0, p1], axis=-1)
-    return image, anatomy, pathology, multiclass
-
-def flip_volume(image, anatomy, pathology, multiclass):
-    if np.random.rand() > 0.5:
-        image = np.flip(image, 0)
-        anatomy = np.flip(anatomy, 0)
-        multiclass = np.flip(multiclass, 0)
-        pathology = np.flip(pathology, 0)
-    if np.random.rand() > 0.5:
-        image = np.flip(image, 1)
-        anatomy = np.flip(anatomy, 1)
-        multiclass = np.flip(multiclass, 1)
-        pathology = np.flip(pathology, 1)
-    return (
-        np.ascontiguousarray(image),
-        np.ascontiguousarray(anatomy),
-        np.ascontiguousarray(pathology),
-        np.ascontiguousarray(multiclass),
-    )
-
-def scale_volume(image, anatomy, pathology, multiclass, scale_range=(0.9, 1.1)):
-    scale = np.random.uniform(*scale_range)
-    h, w, d = image.shape
-    img_s = ndimage.zoom(image, (scale, scale, 1.0), order=3)
-    anat_s = ndimage.zoom(anatomy, (scale, scale, 1.0), order=0)
-    multi_s = ndimage.zoom(multiclass, (scale, scale, 1.0), order=0)
-    p0 = ndimage.zoom(pathology[..., 0], (scale, scale, 1.0), order=0)
-    p1 = ndimage.zoom(pathology[..., 1], (scale, scale, 1.0), order=0)
-    def crop_or_pad(arr, fill):
-        out = np.full((h, w, d), fill, dtype=arr.dtype)
-        src, tgt = [], []
-        for i in range(3):
-            s_len, t_len = arr.shape[i], (h, w, d)[i]
-            if s_len >= t_len:
-                start = (s_len - t_len) // 2
-                src.append(slice(start, start + t_len))
-                tgt.append(slice(None))
-            else:
-                start = (t_len - s_len) // 2
-                src.append(slice(None))
-                tgt.append(slice(start, start + s_len))
-        out[tuple(tgt)] = arr[tuple(src)]
-        return out
-    image = crop_or_pad(img_s, 0.0)
-    anatomy = crop_or_pad(anat_s, 0)
-    multiclass = crop_or_pad(multi_s, 0)
-    pathology = np.stack([crop_or_pad(p0, 0), crop_or_pad(p1, 0)], axis=-1)
-    return image, anatomy, pathology, multiclass
+# Note: training-time augmentation (flips, in-plane rotation/scale/elastic,
+# intensity jitter) now lives in augmentations.py (AFDDAugmentor) and is
+# applied in EMIDECDataset.__getitem__ below, on the torch (C, D, H, W)
+# tensors after the numpy (H, W, D) -> torch permute. See that module's
+# docstring for why geometric ops are restricted to the in-plane (H, W)
+# axes given EMIDEC's ~1.5x1.5x10mm anisotropic spacing.
 
 # ----------------------------- Preprocess CLI --------------------------------
 
@@ -278,20 +226,6 @@ class EMIDECDataset(Dataset):
                 if attempt == 2:
                     raise RuntimeError(f"Failed to load {f}") from last_err
 
-        if self.augment:
-            if np.random.rand() > 0.5:
-                image, anatomy, pathology, multiclass = rotate_volume(
-                    image, anatomy, pathology, multiclass
-                )
-            if np.random.rand() > 0.5:
-                image, anatomy, pathology, multiclass = flip_volume(
-                    image, anatomy, pathology, multiclass
-                )
-            if np.random.rand() > 0.5:
-                image, anatomy, pathology, multiclass = scale_volume(
-                    image, anatomy, pathology, multiclass
-                )
-
         # numpy (H, W, D) -> torch (C, D, H, W)
         image_t = torch.from_numpy(image).float().permute(2, 0, 1).unsqueeze(0)
         anatomy_t = torch.from_numpy(anatomy).long().permute(2, 0, 1)
@@ -300,7 +234,7 @@ class EMIDECDataset(Dataset):
 
         pathological = 1.0 if is_pathological_case_name(f.stem) else 0.0
 
-        return {
+        sample = {
             "image": image_t,
             "anatomy": anatomy_t,
             "pathology": pathology_t,
@@ -308,6 +242,11 @@ class EMIDECDataset(Dataset):
             "pathological": torch.tensor(pathological, dtype=torch.float32),
             "name": f.stem,
         }
+
+        if self.augment:
+            sample = augment_sample(sample)
+
+        return sample
 
 
 if __name__ == "__main__":

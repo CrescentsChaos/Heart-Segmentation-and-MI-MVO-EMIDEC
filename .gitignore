@@ -1,7 +1,15 @@
 /Dataset
 /checkpoints
-/nnunet_data
-/third_party
+nnunet_data/
+third_party/
 __pycache__/
 *.pyc
 .pytest_cache/
+venv/
+.venv/
+/figures
+third_party/*
+# Ignore python built wheels and binaries
+*.whl
+*.tar.gz
+*.zip
