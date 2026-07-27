@@ -190,7 +190,7 @@ class EMIDECDataset(Dataset):
         augment: bool = False,
         files: Optional[List[Path]] = None,
         case_names: Optional[List[str]] = None,
-        patch_size: Tuple[int, int, int] = (96, 96, 16),
+        patch_size: Tuple[int, int, int] = (16, 96, 96),
         pos_patch_prob: float = 0.7,
     ):
         self.augment = augment
