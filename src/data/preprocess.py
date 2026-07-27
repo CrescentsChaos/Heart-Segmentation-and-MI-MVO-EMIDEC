@@ -8,6 +8,7 @@ import nibabel as nib
 import numpy as np
 import scipy.ndimage as ndimage
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))  # repo root
@@ -189,8 +190,12 @@ class EMIDECDataset(Dataset):
         augment: bool = False,
         files: Optional[List[Path]] = None,
         case_names: Optional[List[str]] = None,
+        patch_size: Tuple[int, int, int] = (96, 96, 16),
+        pos_patch_prob: float = 0.7,
     ):
         self.augment = augment
+        self.patch_size = patch_size
+        self.pos_patch_prob = pos_patch_prob
         if files is not None:
             self.files = [Path(f) for f in files]
         elif case_names is not None:
@@ -205,6 +210,72 @@ class EMIDECDataset(Dataset):
             raise FileNotFoundError(
                 f"No .npz files for dataset (split_dir={split_dir}). Run preprocess first."
             )
+
+    # ---- foreground-biased patch extraction (ICPIU-Net-style) ------------ #
+
+    def _sample_patch(
+        self,
+        image: torch.Tensor,
+        anatomy: torch.Tensor,
+        pathology: torch.Tensor,
+        multiclass: torch.Tensor,
+        patch_size: Optional[Tuple[int, int, int]] = None,
+        pos_prob: Optional[float] = None,
+    ):
+        """
+        Foreground-biased patch extraction (ICPIU-Net-style oversampling).
+        ``pos_prob`` fraction of samples are centered on an MI/MVO voxel;
+        the rest are random, preserving background/context diversity.
+        Falls back to a random patch if the case has no pathology (healthy).
+        """
+        if patch_size is None:
+            patch_size = self.patch_size
+        if pos_prob is None:
+            pos_prob = self.pos_patch_prob
+
+        D, H, W = image.shape[-3], image.shape[-2], image.shape[-1]
+        pd, ph, pw = min(patch_size[0], D), min(patch_size[1], H), min(patch_size[2], W)
+
+        # pathology: (2, D, H, W) — channel 0 = MI, channel 1 = MVO
+        mi_mask = pathology[0]
+        mvo_mask = pathology[1]
+        fg_mask = (mi_mask > 0) | (mvo_mask > 0)
+
+        if torch.rand(1).item() < pos_prob and fg_mask.sum() > 0:
+            # center on a random foreground (MI/MVO) voxel
+            coords = torch.nonzero(fg_mask)          # (N, 3) — (d, h, w)
+            idx = torch.randint(0, coords.shape[0], (1,)).item()
+            cz, cy, cx = coords[idx].tolist()
+        else:
+            # random center (guaranteed valid range via max-clamp)
+            cz = torch.randint(pd // 2, max(D - pd // 2, pd // 2 + 1), (1,)).item()
+            cy = torch.randint(ph // 2, max(H - ph // 2, ph // 2 + 1), (1,)).item()
+            cx = torch.randint(pw // 2, max(W - pw // 2, pw // 2 + 1), (1,)).item()
+
+        z0 = max(cz - pd // 2, 0)
+        z1 = min(cz + pd // 2, D)
+        y0 = max(cy - ph // 2, 0)
+        y1 = min(cy + ph // 2, H)
+        x0 = max(cx - pw // 2, 0)
+        x1 = min(cx + pw // 2, W)
+
+        def crop_and_pad(t: torch.Tensor) -> torch.Tensor:
+            c = t[..., z0:z1, y0:y1, x0:x1]
+            pad = (
+                0, pw - c.shape[-1],
+                0, ph - c.shape[-2],
+                0, pd - c.shape[-3],
+            )
+            return F.pad(c, pad, mode="constant", value=0)
+
+        return (
+            crop_and_pad(image),
+            crop_and_pad(anatomy),
+            crop_and_pad(pathology),
+            crop_and_pad(multiclass),
+        )
+
+    # --------------------------------------------------------------------- #
 
     def __len__(self):
         return len(self.files)
@@ -233,6 +304,14 @@ class EMIDECDataset(Dataset):
         pathology_t = torch.from_numpy(pathology).float().permute(3, 2, 0, 1)
 
         pathological = 1.0 if is_pathological_case_name(f.stem) else 0.0
+
+        # Foreground-biased patch sampling (training only).
+        # Runs BEFORE augmentation so geometric transforms operate on the
+        # smaller, foreground-centered patch → faster and more diverse.
+        if self.augment:
+            image_t, anatomy_t, pathology_t, multiclass_t = self._sample_patch(
+                image_t, anatomy_t, pathology_t, multiclass_t
+            )
 
         sample = {
             "image": image_t,

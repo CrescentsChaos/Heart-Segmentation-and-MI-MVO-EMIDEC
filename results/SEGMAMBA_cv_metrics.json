@@ -4,9 +4,7 @@
   "n_folds_requested": 5,
   "n_folds_evaluated": 0,
   "seed": 42,
-  "primary_metric": "foreground_mean",
+  "primary_metric": "MI_pathological",
   "folds": [],
-  "aggregate": {
-    "foreground_mean": null
-  }
+  "aggregate": {}
 }

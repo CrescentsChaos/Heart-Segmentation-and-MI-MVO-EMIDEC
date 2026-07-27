@@ -208,6 +208,15 @@ class AFDDAugmentor:
             # normalize to grid units (grid is in [-1, 1] over H/W)
             field = field / max(field.abs().max().item(), 1e-6)
             field = field * (self.elastic_alpha / max(h, w))
+
+            # Bias deformation strength toward pathology regions:
+            # 1.5x displacement near MI/MVO voxels, 1.0x elsewhere.
+            if "pathology" in labels:
+                fg = (labels["pathology"].sum(dim=0) > 0).float()  # (D, H, W)
+                fg_2d = fg.amax(dim=0)  # collapse depth -> (H, W) mask
+                boost = 1.0 + 0.5 * fg_2d  # 1.5x near pathology, 1x elsewhere
+                field = field * boost.unsqueeze(0)
+
             disp = field.permute(1, 2, 0)  # (H, W, 2), order (dx, dy) for grid_sample
             image = _apply_inplane_elastic(image, disp, mode="bilinear")
             labels = {
