@@ -99,8 +99,7 @@ SEED = 42
 DEVICE = "cuda"  # overridden at runtime if CUDA unavailable
 # Ablation variant keys: M1 .. M5 (Sec. 4.5 Table)
 DEFAULT_VARIANT = "M5"
-# External baselines (native PyTorch + real nnU-Net v2)
-# Real:  NNUNET (nnU-Net v2, see src/nnunet_emidec.py)
+# External baselines
 BASELINE_EPOCHS = 80
 # Official external architecture checkouts (created by setup_modern_baselines.py)
 THIRD_PARTY_MODEL_DIR = ROOT / "third_party"
@@ -109,11 +108,6 @@ BASELINE_BATCH_SIZE = 2
 SWINUNETR_BATCH_SIZE = 1
 BASELINE_BATCH_SIZES = {
     "SWINUNETR": 1,
-    "SWINUNETR_V2": 1,
-    "MEDNEXT": 1,
-    "UXNET3D": 1,
-    "UMAMBA_ENC": 1,
-    "SEGMAMBA": 1,
 }
 
 # ---------------------------------------------------------------------------
@@ -126,12 +120,7 @@ CV_INNER_VAL_FRAC = 0.15  # of train-pool only; test fold never used for val
 # In --cv mode ALL variants (ablation + baselines) use this — fair comparison
 CV_EPOCHS = 80
 
-# Real nnU-Net v2 paths (Dataset501_EMIDEC); created by src/nnunet_emidec.py
-NNUNET_DATASET_ID = 501
-NNUNET_DATASET_NAME = "EMIDEC"
-NNUNET_ROOT = ROOT / "nnunet_data"
-NNUNET_CONFIGURATION = "3d_fullres"
-NNUNET_TRAINER = "nnUNetTrainerAFDD80"  # 80 epochs = CV_EPOCHS
+
 
 # Official model identity (paper / thesis comparison)
 MODEL_NAME = "AFDD-Net"

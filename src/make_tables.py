@@ -260,8 +260,7 @@ def main():
             "(EMIDEC label 3; not infarct∪MVO). "
             "Under --cv, values are mean±std across 5 folds. "
             "All models share Dataset/folds.json and CV_EPOCHS. "
-            "PyTorch baselines + M1/M2 use 5-class heads (BG/LV/MYO/MI/MVO). "
-            "NNUNET row is real nnU-Net v2 (src/nnunet_emidec.py)."
+            "PyTorch baselines + M1/M2 use 5-class heads (BG/LV/MYO/MI/MVO)."
         ),
     }
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)

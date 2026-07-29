@@ -25,7 +25,6 @@ from model_identity import (
     ABLATION_VARIANTS,
     PYTORCH_BASELINE_VARIANTS,
     is_multiclass_variant,
-    is_real_nnunet,
 )
 from models.dual_decoder import build_model, count_parameters
 from train import _load_state_dict, collate
@@ -49,32 +48,37 @@ def _dice_mean(summary: dict, key: str) -> Optional[float]:
 
 
 def aggregate_fold_summaries(fold_summaries: List[dict]) -> dict:
-    """Mean ± std across folds of each structure's Dice (and disease_acc)."""
+    """Mean ± std across folds of each structure's metrics (and disease_acc)."""
     if not fold_summaries:
         return {}
-    # Keys that look like metric blocks with dice.mean
-    metric_keys = set()
+    
+    metric_structure = {}
     for s in fold_summaries:
         for k, v in s.items():
-            if isinstance(v, dict) and "dice" in v and isinstance(v["dice"], dict):
-                metric_keys.add(k)
+            if isinstance(v, dict):
+                for sub_k, sub_v in v.items():
+                    if isinstance(sub_v, dict) and "mean" in sub_v:
+                        if k not in metric_structure:
+                            metric_structure[k] = set()
+                        metric_structure[k].add(sub_k)
 
     out: Dict = {"n_folds": len(fold_summaries)}
-    for key in sorted(metric_keys):
-        vals = []
-        for s in fold_summaries:
-            m = _dice_mean(s, key)
-            if m is not None and not (isinstance(m, float) and np.isnan(m)):
-                vals.append(float(m))
-        if vals:
-            out[key] = {
-                "dice": {
+    for k, sub_keys in metric_structure.items():
+        out[k] = {}
+        for sub_k in sub_keys:
+            vals = []
+            for s in fold_summaries:
+                if k in s and sub_k in s[k] and "mean" in s[k][sub_k]:
+                    m = s[k][sub_k]["mean"]
+                    if m is not None and not (isinstance(m, float) and np.isnan(m)):
+                        vals.append(float(m))
+            if vals:
+                out[k][sub_k] = {
                     "mean": float(np.mean(vals)),
                     "std": float(np.std(vals, ddof=1) if len(vals) > 1 else 0.0),
                     "n": len(vals),
                     "per_fold": vals,
                 }
-            }
 
     # Optional scalar disease accuracy
     dvals = []
@@ -275,7 +279,7 @@ def run_eval(
     summary["primary_metric"] = "MI_pathological"
     summary["protocol"] = "5-fold-cv" if fold is not None else "single-split"
 
-    out_path = cfg.RESULTS_DIR / metrics_name(variant, "test", fold)
+    out_path = cfg.RESULTS_DIR / metrics_name(variant, split, fold)
     cfg.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out_path.write_text(
         json.dumps({"summary": summary, "per_case": per_case}, indent=2),
@@ -365,10 +369,10 @@ def _save_overlay(img, pred, gt, path, title, mode="multi"):
     axes[0].set_title("LGE")
     axes[1].imshow(img, cmap="gray")
     axes[1].imshow(gt, cmap="tab10", alpha=0.45, vmin=0, vmax=4)
-    axes[1].set_title("GT")
+    axes[1].set_title("Ground Truth")
     axes[2].imshow(img, cmap="gray")
     axes[2].imshow(pred, cmap="tab10", alpha=0.45, vmin=0, vmax=4)
-    axes[2].set_title("Pred")
+    axes[2].set_title("Prediction")
     for ax in axes:
         ax.axis("off")
     fig.suptitle(title)
@@ -383,10 +387,10 @@ def _save_dual(img, anat_p, path_p, anat_g, path_g, path, title):
     axes[0, 0].set_title("LGE")
     axes[0, 1].imshow(img, cmap="gray")
     axes[0, 1].imshow(anat_g, cmap="tab10", alpha=0.45, vmin=0, vmax=3)
-    axes[0, 1].set_title("GT Anatomy")
+    axes[0, 1].set_title("Ground Truth Anatomy")
     axes[0, 2].imshow(img, cmap="gray")
     axes[0, 2].imshow(anat_p, cmap="tab10", alpha=0.45, vmin=0, vmax=3)
-    axes[0, 2].set_title("Pred Anatomy")
+    axes[0, 2].set_title("Prediction Anatomy")
     mi_g = np.zeros((*img.shape, 3))
     mi_g[..., 0] = path_g[0]
     mi_g[..., 1] = path_g[1]
@@ -397,10 +401,10 @@ def _save_dual(img, anat_p, path_p, anat_g, path_g, path, title):
     axes[1, 0].set_title("LGE")
     axes[1, 1].imshow(img, cmap="gray")
     axes[1, 1].imshow(mi_g, alpha=0.5)
-    axes[1, 1].set_title("GT MI(red)/MVO(green)")
+    axes[1, 1].set_title("Ground Truth MI(red)/MVO(green)")
     axes[1, 2].imshow(img, cmap="gray")
     axes[1, 2].imshow(mi_p, alpha=0.5)
-    axes[1, 2].set_title("Pred MI/MVO")
+    axes[1, 2].set_title("Prediction MI/MVO")
     for ax in axes.ravel():
         ax.axis("off")
     fig.suptitle(title)
@@ -417,8 +421,7 @@ def main():
     parser.add_argument(
         "--variant",
         default="M5",
-        help="M1-M5 / registered PyTorch baseline / comma-list. "
-        "Real nnU-Net: python -m src.nnunet_emidec eval",
+        help="M1-M5 / registered PyTorch baseline / comma-list.",
     )
     parser.add_argument("--ckpt", default=None)
     parser.add_argument("--split", default="test")
@@ -441,10 +444,6 @@ def main():
         variants = list(PYTORCH_BASELINE_VARIANTS)
     else:
         variants = [v.strip().upper() for v in args.variant.split(",") if v.strip()]
-        if any(is_real_nnunet(v) for v in variants):
-            raise SystemExit(
-                "NNUNET eval: python -m src.nnunet_emidec eval --cv"
-            )
 
     save_figs = not args.no_figs
     table = {}

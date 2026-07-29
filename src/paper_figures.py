@@ -59,14 +59,7 @@ PALETTE = {
     "UNET": "#4C78A8",
     "SEGRESNET": "#72B7B2",
     "SWINUNETR": "#F58518",
-    "SWINUNETR_V2": "#8C564B",
     "DYNUNET": "#54A24B",
-    "DYNUNET_RES": "#D67195",
-    "MEDNEXT": "#17BECF",
-    "UXNET3D": "#BCBD22",
-    "UMAMBA_ENC": "#9467BD",
-    "SEGMAMBA": "#7F7F7F",
-    "NNUNET": "#1F77B4",
     "sota": "#72B7B2",
     "ours": "#B279A2",
 }
@@ -85,17 +78,26 @@ def _dice_key(variant: str) -> str:
 def _mi_path_key(variant: str) -> str:
     return "MI_pathological"
 
-def load_history(variant: str) -> Optional[List[Dict]]:
-    path = cfg.RESULTS_DIR / f"{variant}_history.json"
+def load_history(variant: str, use_cv: bool = False) -> Optional[List[Dict]]:
+    if use_cv:
+        path = cfg.RESULTS_DIR / f"{variant}_fold0_history.json"
+    else:
+        path = cfg.RESULTS_DIR / f"{variant}_history.json"
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
 
-def load_test_summary(variant: str, split: str = "test") -> Optional[Dict]:
-    path = cfg.RESULTS_DIR / f"{variant}_{split}_metrics.json"
-    if not path.exists():
-        return None
-    return json.loads(path.read_text(encoding="utf-8"))["summary"]
+def load_test_summary(variant: str, split: str = "test", use_cv: bool = False) -> Optional[Dict]:
+    if use_cv:
+        path = cfg.RESULTS_DIR / f"{variant}_cv_metrics.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text(encoding="utf-8")).get("aggregate")
+    else:
+        path = cfg.RESULTS_DIR / f"{variant}_{split}_metrics.json"
+        if not path.exists():
+            return None
+        return json.loads(path.read_text(encoding="utf-8")).get("summary")
 
 def _metric(summary: Dict, region: str, name: str) -> Optional[float]:
     if region not in summary or name not in summary[region]:
@@ -199,10 +201,10 @@ def plot_all_variants_overlay(histories: Dict[str, List[Dict]], out_dir: Path):
 # Ablation / test metric bar charts
 # ---------------------------------------------------------------------------
 
-def collect_ablation_rows(split: str = "test") -> List[Dict[str, Any]]:
+def collect_ablation_rows(split: str = "test", use_cv: bool = False) -> List[Dict[str, Any]]:
     rows = []
     for v in list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS):
-        s = load_test_summary(v, split)
+        s = load_test_summary(v, split, use_cv)
         if s is None:
             continue
         mi_key = _dice_key(v)
@@ -480,7 +482,7 @@ def write_tables(rows: List[Dict], out_res: Path, split: str):
         "> **PRIMARY: MI_path** = pure MI Dice (EMIDEC label 3) on pathological cases only. "
         "Multiclass models (M1/M2/baselines) now predict MI and MVO as separate classes — "
         "not merged infarct. MI_all includes healthy empty–empty = 1.0; do not cite as scar metric. "
-        "NNUNET row is real nnU-Net v2; DYNUNET_RES is MONAI residual DynUNet. "
+
         "**MI (all)** is secondary. Disease classifier (M5 only) + voxel suppression reduce healthy FPs. "
         "Train best is on **val**; this table is **test**.",
         "",
@@ -627,12 +629,12 @@ def render_table_figure(rows: List[Dict], out_dir: Path):
 # Main
 # ---------------------------------------------------------------------------
 
-def generate_all(split: str = "test") -> Dict[str, Any]:
+def generate_all(split: str = "test", use_cv: bool = False) -> Dict[str, Any]:
     fig_dir, res_dir = _ensure_dirs()
     saved = []
     histories = {}
     for v in list(ABLATION_VARIANTS) + list(BASELINE_VARIANTS):
-        h = load_history(v)
+        h = load_history(v, use_cv)
         if h:
             histories[v] = h
             saved.append(str(plot_training_curves(v, h, fig_dir)))
@@ -662,7 +664,7 @@ def generate_all(split: str = "test") -> Dict[str, Any]:
             fig.savefig(bp, dpi=200, bbox_inches="tight")
             plt.close(fig)
             saved.append(str(bp))
-    rows = collect_ablation_rows(split)
+    rows = collect_ablation_rows(split, use_cv)
     if rows:
         saved.append(str(plot_grouped_bars(
             rows,
@@ -723,8 +725,9 @@ def generate_all(split: str = "test") -> Dict[str, Any]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", default="test")
+    parser.add_argument("--cv", action="store_true", help="Load CV metrics instead of single split")
     args = parser.parse_args()
-    index = generate_all(args.split)
+    index = generate_all(args.split, args.cv)
     print(f"\n{MODEL_NAME} paper figures generated")
     print(f"  Figures: {cfg.FIGURES_DIR / 'paper'}")
     print(f"  Tables:  {cfg.RESULTS_DIR / 'paper'}")

@@ -29,14 +29,8 @@ def precision_recall(pred: np.ndarray, gt: np.ndarray):
     inter = np.logical_and(pred, gt).sum()
     if pred.sum() == 0 and gt.sum() == 0:
         return 1.0, 1.0
-    if pred.sum() == 0:
-        prec = 0.0
-    else:
-        prec = float(inter / pred.sum())
-    if gt.sum() == 0:
-        rec = float("nan")
-    else:
-        rec = float(inter / gt.sum())
+    prec = 0.0 if pred.sum() == 0 else float(inter / pred.sum())
+    rec = 0.0 if gt.sum() == 0 else float(inter / gt.sum())
     return prec, rec
 
 def hd95(pred: np.ndarray, gt: np.ndarray, spacing=(1.5, 1.5, 10.0), max_samples=400) -> float:
@@ -81,9 +75,10 @@ def summarize(metric_list):
     out = {}
     for k in keys:
         vals = np.array([m[k] for m in metric_list], dtype=np.float64)
+        n_valid = int(np.sum(~np.isnan(vals)))
         out[k] = {
-            "mean": float(np.nanmean(vals)),
-            "std": float(np.nanstd(vals)),
-            "n": int(np.sum(~np.isnan(vals))),
+            "mean": float(np.nanmean(vals)) if n_valid > 0 else 0.0,
+            "std": float(np.nanstd(vals, ddof=1)) if n_valid > 1 else 0.0,
+            "n": n_valid,
         }
     return out

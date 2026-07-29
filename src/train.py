@@ -28,7 +28,6 @@ from model_identity import (
     PYTORCH_BASELINE_VARIANTS,
     VARIANT_SHORT,
     is_multiclass_variant,
-    is_real_nnunet,
 )
 from models.dual_decoder import build_model, count_parameters
 
@@ -472,15 +471,7 @@ def _resolve_variants(spec: str) -> list[str]:
         return list(PYTORCH_BASELINE_VARIANTS)
     if s == "everything":
         return list(ABLATION_VARIANTS) + list(PYTORCH_BASELINE_VARIANTS)
-    variants = [v.strip().upper() for v in spec.split(",") if v.strip()]
-    if any(is_real_nnunet(v) for v in variants):
-        raise SystemExit(
-            "NNUNET (real nnU-Net v2) is trained via:\n"
-            "  python -m src.nnunet_emidec prepare\n"
-            "  python -m src.nnunet_emidec train --cv\n"
-            "  python -m src.nnunet_emidec eval --cv\n"
-            "MONAI DynUNet-Res is variant DYNUNET_RES."
-        )
+        variants = [v.strip().upper() for v in spec.split(",") if v.strip()]
     return variants
 
 
@@ -490,8 +481,7 @@ def main():
         "--variant",
         default="M5",
         help="M1-M5 or a registered PyTorch baseline; comma-list, 'all' "
-        "(ablation), 'baselines', or 'everything'. "
-        "Real nnU-Net: python -m src.nnunet_emidec",
+        "(ablation), 'baselines', or 'everything'. ",
     )
     parser.add_argument(
         "--epochs",
