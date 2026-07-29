@@ -612,7 +612,7 @@ def render_table_figure(rows: List[Dict], out_dir: Path):
         scell.append([
             MODEL_NAME,
             str(MODEL_YEAR),
-            "Stratified test split",
+            "5-fold CV",
             f"{ours['MYO_dice']:.3f}" if ours.get("MYO_dice") is not None else "-",
             f"{ours['MI_dice']:.3f}" if ours.get("MI_dice") is not None else "-",
         ])
