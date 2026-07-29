@@ -220,51 +220,6 @@ Built-in baselines using the MONAI library, all trained on the same 5-class targ
 | `SWINUNETR` | SwinUNETR (transformer) | `monai.networks.nets.SwinUNETR` |
 | `DYNUNET` | DynUNet (non-residual) | `monai.networks.nets.DynUNet` |
 
-### Modern Baselines (Optional)
-
-Additional state-of-the-art architectures from official repositories. These require setup before training:
-
-```bash
-# Cross-platform (MedNeXt, 3D UX-Net — also unlocks SwinUNETR-V2)
-python scripts/setup_modern_baselines.py mednext uxnet3d --install
-
-# Linux/WSL2 only (Mamba CUDA extensions required)
-python scripts/setup_modern_baselines.py umamba segmamba
-```
-
-| Key | Architecture | Source | Platform |
-|-----|-------------|--------|----------|
-| `MEDNEXT` | MedNeXt-S | MIC-DKFZ/MedNeXt | Cross-platform |
-| `UXNET3D` | 3D UX-Net | MASILab/3DUX-Net | Cross-platform |
-| `SWINUNETR_V2` | SwinUNETR v2 | MONAI (use_v2=True) | Cross-platform |
-| `UMAMBA_ENC` | U-Mamba Enc | bowang-lab/U-Mamba | Linux/WSL2 |
-| `SEGMAMBA` | SegMamba | ge-xing/SegMamba | Linux/WSL2 |
-
-Train individually:
-
-```bash
-python -m src.train --variant MEDNEXT --cv
-python -m src.train --variant UXNET3D --cv
-python -m src.train --variant SWINUNETR_V2 --cv
-python -m src.train --variant UMAMBA_ENC --cv
-python -m src.train --variant SEGMAMBA --cv
-```
-
-> See [`docs/MODERN_BASELINES.md`](docs/MODERN_BASELINES.md) for pinned revisions, Mamba CUDA setup, and [`THIRD_PARTY_MODELS.md`](THIRD_PARTY_MODELS.md) for attribution and licenses.
-
-### Real nnU-Net v2
-
-A genuine nnU-Net v2 pipeline (not MONAI DynUNet) with matched 80-epoch budget:
-
-```bash
-pip install nnunetv2
-python -m src.nnunet_emidec prepare       # EMIDEC → Dataset501 + plan
-python -m src.nnunet_emidec train --cv    # 80 epochs / fold, same test folds
-python -m src.nnunet_emidec eval --cv     # pure MI_path mean ± std
-python -m src.make_tables --cv
-```
-
----
 
 ## Evaluation & Reporting
 
