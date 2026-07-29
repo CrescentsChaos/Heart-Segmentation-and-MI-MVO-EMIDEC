@@ -1,0 +1,52 @@
+{
+  "case": "Case_P059",
+  "type": "Pathological",
+  "model": "AFDD-Net",
+  "variant": "M5",
+  "fold": 4,
+  "checkpoint": "E:\\Thesis Dataset 3\\checkpoints\\M5_fold4_best.pth",
+  "dysfunction_stats": {
+    "voxel_counts": {
+      "LV_cavity": 3734,
+      "MYO": 4391,
+      "LV_total": 8125,
+      "MI": 979,
+      "MVO": 296,
+      "dysfunction_MI_or_MVO": 1105
+    },
+    "percent_of_MYO": {
+      "MI": 22.3,
+      "MVO": 6.74,
+      "dysfunction": 25.17
+    },
+    "percent_of_LV_cavity": {
+      "MI": 0.0,
+      "MVO": 0.0,
+      "dysfunction": 0.0
+    },
+    "percent_of_LV_total_cavity_plus_MYO": {
+      "MI": 12.05,
+      "MVO": 3.64,
+      "dysfunction": 13.6
+    },
+    "MVO_as_percent_of_MI": 30.23
+  },
+  "clinical": {
+    "Gap between slices": "10 mm",
+    "Sex": "M",
+    "Age": "62",
+    "Tobacco": "1",
+    "Overweight": "N",
+    "Arterial hypertension": "N",
+    "Diabetes": "Y",
+    "Familial history of coronary artery disease": "N",
+    "ECG (ST +)": "Y",
+    "Troponin": "41",
+    "Killip Max": "4",
+    "FEVG": "20",
+    "NTProBNP": "490"
+  },
+  "figures": [
+    "E:\\Thesis Dataset 3\\figures\\segmentations\\Case_P059\\Case_P059_segmentation.png"
+  ]
+}
