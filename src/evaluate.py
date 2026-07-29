@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from monai.inferers import sliding_window_inference
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -103,6 +104,54 @@ def aggregate_fold_summaries(fold_summaries: List[dict]) -> dict:
     return out
 
 
+def run_eval_patchwise(
+    model, volume, patch_size=(16, 96, 96), sw_batch_size=1, overlap=0.5
+):
+    """
+    Replaces direct model(x) calls in evaluate.py's run_eval().
+    Slides the patch-sized window across the full volume with overlap.
+    Strips out non-spatial tensors during sliding window inference,
+    then aggregates patch-level disease probabilities back into a global prediction.
+    """
+    orig_gate = getattr(model, "gate_pathology_by_disease", False)
+    if orig_gate:
+        model.gate_pathology_by_disease = False
+
+    disease_probs = []
+
+    def predictor(patch):
+        out = model(patch)
+        if "disease_prob" in out:
+            disease_probs.append(out["disease_prob"])
+        # Return only spatial tensors (dim >= 4 for (B, C, H, W) or (B, C, D, H, W))
+        return {k: v for k, v in out.items() if v.ndim >= 4}
+
+    out = sliding_window_inference(
+        inputs=volume,
+        roi_size=patch_size,
+        sw_batch_size=sw_batch_size,
+        predictor=predictor,
+        overlap=overlap,
+        mode="gaussian",
+    )
+
+    if orig_gate:
+        model.gate_pathology_by_disease = True
+
+    if disease_probs:
+        avg_prob = torch.cat(disease_probs, dim=0).mean(dim=0, keepdim=True)
+        out["disease_prob"] = avg_prob
+        
+        if orig_gate:
+            disease_gate = (avg_prob > model.disease_threshold).float()
+            disease_gate = disease_gate.view(-1, 1, 1, 1, 1)
+            if "pathology_prob" in out:
+                out["pathology_prob"] = out["pathology_prob"] * disease_gate
+            out["disease_gate"] = disease_gate
+
+    return out
+
+
 @torch.no_grad()
 def run_eval(
     variant: str,
@@ -164,7 +213,7 @@ def run_eval(
         x = batch["image"].to(device)
         name = batch["name"][0]
         t0 = time.time()
-        out = model(x)
+        out = run_eval_patchwise(model, x, patch_size=(16, 96, 96))
         if device.type == "cuda":
             torch.cuda.synchronize()
         times.append((time.time() - t0) * 1000)

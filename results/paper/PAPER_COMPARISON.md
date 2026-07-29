@@ -13,15 +13,6 @@
 
 | Variant | Model | LV Dice | MYO Dice | **MI_path** | MI (all) | MVO Dice | Params (M) | Infer (ms) |
 |---------|-------|--------:|---------:|-----------:|---------:|---------:|-----------:|-----------:|
-| M1 | Baseline 3D U-Net | 0.911 | 0.741 | **0.441** | 0.556 | 0.392 | 46.580 | 72.854 |
-| M2 | AFDD-Net-F | 0.907 | 0.731 | **0.420** | 0.471 | 0.355 | 11.522 | 66.162 |
-| M3 | AFDD-Net-D | 0.903 | 0.764 | **0.437** | 0.412 | 0.268 | 16.059 | 80.308 |
-| M4 | AFDD-Net-T | 0.908 | 0.763 | **0.442** | 0.346 | 0.248 | 16.059 | 76.986 |
-| M5 | AFDD-Net | 0.912 | 0.779 | **0.436** | 0.445 | 0.391 | 16.092 | 79.775 |
-| UNET | UNet | 0.855 | 0.604 | **0.223** | 0.283 | 0.570 | 19.223 | 52.223 |
-| SEGRESNET | SegResNet | 0.899 | 0.659 | **0.257** | 0.411 | 0.601 | 4.701 | 54.829 |
-| SWINUNETR | SwinUNETR | 0.837 | 0.667 | **0.283** | 0.240 | 0.475 | 15.703 | 94.423 |
-| DYNUNET | DynUNet | 0.889 | 0.638 | **0.308** | 0.297 | 0.487 | 22.572 | 61.482 |
 
 > **PRIMARY: MI_path** = pure MI Dice (EMIDEC label 3) on pathological cases only. Multiclass models (M1/M2/baselines) now predict MI and MVO as separate classes — not merged infarct. MI_all includes healthy empty–empty = 1.0; do not cite as scar metric. **MI (all)** is secondary. Disease classifier (M5 only) + voxel suppression reduce healthy FPs. Train best is on **val**; this table is **test**.
 
@@ -38,7 +29,6 @@
 | CLAIM (Ramzan et al.) | 2025 | 10 held-out cases | - | 0.635 |
 | 2D-3D Cascade (EcorC) (Schwab et al.) | 2025 | 5-fold CV (100 cases) | 0.860 | 0.760 |
 | Expert (inter-observer) (Lalande et al.) | 2020 | Inter-observer (Data 2020) | 0.830 | 0.690 |
-| **AFDD-Net (this work)** | 2026 | Stratified test split | **0.779** | **0.445** (MI_path **0.436**) |
 
 ## Notes on protocol fairness
 
