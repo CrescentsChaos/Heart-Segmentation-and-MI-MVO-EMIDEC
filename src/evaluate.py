@@ -349,7 +349,7 @@ def run_eval(
         print(f"  MVO:     {mvo:.4f}")
     infarct = _dice_mean(summary, "Infarct")
     if infarct is not None:
-        print(f"  Infarct (MI∪MVO, secondary): {infarct:.4f}")
+        print(f"  Infarct (MI+MVO, secondary): {infarct:.4f}")
     if "disease_acc" in summary:
         print(f"  Disease classification accuracy: {summary['disease_acc']:.4f}")
     print(f"Saved -> {out_path}")

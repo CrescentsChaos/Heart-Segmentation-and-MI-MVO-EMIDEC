@@ -6,6 +6,7 @@ from typing import Dict, Optional
 import torch
 import torch.nn.functional as F
 
+from monai.inferers import sliding_window_inference
 import config as cfg
 
 
@@ -132,6 +133,46 @@ def _apply_aug(x: torch.Tensor, name: str) -> torch.Tensor:
 AUG_NAMES = ["id", "flip_w", "flip_h", "flip_d", "rot90", "rot180", "rot270", "rot90_flip_w"]
 
 
+
+def run_eval_patchwise(
+    model, volume, patch_size=(16, 96, 96), sw_batch_size=1, overlap=0.5
+):
+    orig_gate = getattr(model, "gate_pathology_by_disease", False)
+    if orig_gate:
+        model.gate_pathology_by_disease = False
+
+    disease_probs = []
+
+    def predictor(patch):
+        out = model(patch)
+        if "disease_prob" in out:
+            disease_probs.append(out["disease_prob"])
+        return {k: v for k, v in out.items() if v.ndim >= 4}
+
+    out = sliding_window_inference(
+        inputs=volume,
+        roi_size=patch_size,
+        sw_batch_size=sw_batch_size,
+        predictor=predictor,
+        overlap=overlap,
+        mode="gaussian",
+    )
+
+    if orig_gate:
+        model.gate_pathology_by_disease = True
+
+    if disease_probs:
+        avg_prob = torch.cat(disease_probs, dim=0).mean(dim=0, keepdim=True)
+        out["disease_prob"] = avg_prob
+        
+        if orig_gate:
+            disease_gate = (avg_prob > model.disease_threshold).float()
+            disease_gate = disease_gate.view(-1, 1, 1, 1, 1)
+            if "pathology_prob" in out:
+                out["pathology_prob"] = out["pathology_prob"] * disease_gate
+            out["disease_gate"] = disease_gate
+
+    return out
 @torch.no_grad()
 def predict_dual(
     model: torch.nn.Module,
@@ -155,7 +196,7 @@ def predict_dual(
 
     for name in names:
         aug_vol = _apply_aug(volume, name)
-        out = model(aug_vol)
+        out = run_eval_patchwise(model, aug_vol, patch_size=(16, 96, 96))
         anat_logits_acc.append(_invert_aug(out["anatomy_logits"], name))
         # Use ungated logits path via pathology_prob before averaging; model may gate in eval
         path_prob_acc.append(_invert_aug(out["pathology_prob"], name))
@@ -202,7 +243,7 @@ def predict_multiclass(
     names = AUG_NAMES[: max(1, min(n_augs, len(AUG_NAMES)))] if use_tta else ["id"]
     acc = []
     for name in names:
-        out = model(_apply_aug(volume, name))
+        out = run_eval_patchwise(model, _apply_aug(volume, name), patch_size=(16, 96, 96))
         logits = out["multiclass_logits"]
         acc.append(_invert_aug(logits, name))
     logits = torch.stack(acc, dim=0).mean(dim=0)
