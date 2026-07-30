@@ -292,7 +292,7 @@ def main():
     print(f"{MODEL_NAME} results | {protocol}")
     print("PRIMARY thesis metric = MI_path (pure MI, pathological only).")
     _print_table(f"{MODEL_NAME} ablation", ablation_rows, use_cv=use_cv)
-    _print_table("External baselines (PyTorch + nnU-Net)", baseline_rows, use_cv=use_cv)
+    _print_table("External baselines", baseline_rows, use_cv=use_cv)
     print(f"\nSaved JSON -> {path}")
     for p in csv_paths:
         print(f"Saved CSV  -> {p}")

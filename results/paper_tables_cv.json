@@ -18,7 +18,7 @@
       "MVO_std": 0.16336470154698687,
       "Infarct": 0.4992114567825395,
       "params_M": 46.579769,
-      "inference_ms": 101.79976330663924,
+      "inference_ms": 101.34267804019133,
       "protocol": "5-fold-cv"
     },
     {
@@ -36,7 +36,7 @@
       "MVO_std": 0.2136766836599573,
       "Infarct": 0.42223385480844344,
       "params_M": 11.521529,
-      "inference_ms": 75.77475364345656,
+      "inference_ms": 60.73629218534121,
       "protocol": "5-fold-cv"
     },
     {
@@ -54,7 +54,7 @@
       "MVO_std": 0.05715459993957753,
       "Infarct": null,
       "params_M": 16.058893,
-      "inference_ms": 102.82946163550355,
+      "inference_ms": 102.35254849407607,
       "protocol": "5-fold-cv"
     },
     {
@@ -72,7 +72,7 @@
       "MVO_std": 0.03817774414413613,
       "Infarct": null,
       "params_M": 16.058893,
-      "inference_ms": 103.72574838480554,
+      "inference_ms": 100.44376017156998,
       "protocol": "5-fold-cv"
     },
     {
@@ -90,7 +90,7 @@
       "MVO_std": 0.09468495897259502,
       "Infarct": null,
       "params_M": 16.09179,
-      "inference_ms": 102.16753032273218,
+      "inference_ms": 101.96896707204948,
       "protocol": "5-fold-cv"
     }
   ],
@@ -110,7 +110,7 @@
       "MVO_std": 0.056864925601771005,
       "Infarct": 0.37433858042309504,
       "params_M": 19.222686,
-      "inference_ms": 57.534656411125546,
+      "inference_ms": 22.151535375972735,
       "protocol": "5-fold-cv"
     },
     {
@@ -128,7 +128,7 @@
       "MVO_std": 0.030082705827302558,
       "Infarct": 0.48731452930333374,
       "params_M": 4.700965,
-      "inference_ms": 71.88029556943658,
+      "inference_ms": 30.758914063150122,
       "protocol": "5-fold-cv"
     },
     {
@@ -146,7 +146,7 @@
       "MVO_std": 0.10163104460163404,
       "Infarct": 0.2530084872933685,
       "params_M": 15.703078999999999,
-      "inference_ms": 190.51336826238418,
+      "inference_ms": 186.05448501749447,
       "protocol": "5-fold-cv"
     },
     {
@@ -164,7 +164,7 @@
       "MVO_std": 0.09300578524236511,
       "Infarct": 0.3808092434237741,
       "params_M": 22.572037,
-      "inference_ms": 74.35930030387745,
+      "inference_ms": 51.26219288747113,
       "protocol": "5-fold-cv"
     }
   ],
