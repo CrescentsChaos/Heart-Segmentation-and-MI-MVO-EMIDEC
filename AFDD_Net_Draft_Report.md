@@ -117,13 +117,13 @@ At inference, **8-fold test-time augmentation** is applied:
 
 ### 4.1 Overview
 
-AFDD-Net follows an encoder–dual-decoder design. A **shared encoder** extracts multi-scale features from the input LGE volume. Two separate decoders — an **anatomy decoder** and a **pathology decoder** — then reconstruct the segmentation maps at full resolution. The anatomy decoder produces a 3-class softmax output (BG/LV/MYO), while the pathology decoder produces a 2-channel sigmoid output (MI/MVO), gated by the predicted myocardial wall probability from the anatomy branch.
+AFDD-Net follows an encoder–dual-decoder design. As noted in recent literature (e.g., BTI-Net, 2026), joint segmentation and classification architectures operating within an encoder-sharing paradigm have been widely studied for ultrasound, dermoscopy, and brain MRI, establishing this architectural pattern as a recognised category. In our model, a **shared encoder** extracts multi-scale features from the input LGE volume. Two separate decoders — an **anatomy decoder** and a **pathology decoder** — then reconstruct the segmentation maps at full resolution. The anatomy decoder produces a 3-class softmax output (BG/LV/MYO), while the pathology decoder produces a 2-channel sigmoid output (MI/MVO), gated by the predicted myocardial wall probability from the anatomy branch.
 
 The architecture is specifically designed to be **parameter-efficient**: by factorizing 3D convolutions into sequential in-plane and through-plane operations, AFDD-Net achieves a total parameter count of just **16.1M** — a **65% reduction** compared to the 46.6M parameters of a standard isotropic 3D U-Net baseline (M1), and fewer parameters than comparable architectures such as DynUNet (22.6M).
 
 ### 4.2 Anisotropic Factorized 3D Convolutions
 
-Standard isotropic 3×3×3 3D convolutions assume uniform voxel spacing, which is inappropriate for EMIDEC's highly anisotropic resolution. We introduce **Anisotropic Factorized 3D Convolutions** that decompose each 3D convolution into two sequential operations:
+Standard isotropic 3×3×3 3D convolutions assume uniform voxel spacing, which is inappropriate for EMIDEC's highly anisotropic resolution. Drawing inspiration from video action recognition models like P3D-ResNet (Qiu et al., 2017) and the broader family (R(2+1)D, S3D-G) — which established spatial/temporal convolution factorization (decomposing a 3D filter into a 2D spatial and 1D temporal filter) to reduce parameters while capturing both dimensions — we apply an identical mathematical technique for in-plane/through-plane decomposition. Specifically, we introduce **Anisotropic Factorized 3D Convolutions** that decompose each 3D convolution into two sequential operations:
 
 1. **In-plane convolution:** `Conv3d` with kernel `(1, 3, 3)` — processes each axial slice independently in the high-resolution H, W plane.
 2. **Through-plane convolution:** `Conv3d` with kernel `(3, 1, 1)` — aggregates information across neighbouring slices along the low-resolution D axis.
@@ -482,3 +482,5 @@ The proposed architecture validates the thesis that an efficient 3D deep neural 
 - Ronneberger, O., et al. (2015). U-Net: Convolutional networks for biomedical image segmentation. *MICCAI*.
 - Hatamizadeh, A., et al. (2022). Swin UNETR: Swin transformers for semantic segmentation of brain tumours in MRI images. *BrainLes@MICCAI*.
 - Milletari, F., et al. (2016). V-Net: Fully convolutional neural networks for volumetric medical image segmentation. *3DV*.
+- Qiu, Z., Yao, T., & Mei, T. (2017). Learning Spatio-Temporal Representation with Pseudo-3D Residual Networks (P3D-ResNet). *ICCV*. (https://arxiv.org/pdf/1711.10305)
+- BTI-Net Authors (2026). BTI-Net: Joint segmentation and classification within the encoder-sharing paradigm. (https://arxiv.org/pdf/2409.19658, https://www.semanticscholar.org/reader/fa56122bf5e9c66cd4418513d0b8d914024e4e9b)
