@@ -203,6 +203,17 @@ def _predict_case(
 
 # ──────────────────────────── per-patient figure ──────────────────────────── #
 
+def _dice_score(pred_mask: np.ndarray, gt_mask: np.ndarray) -> float:
+    """Compute binary Dice score for a 2D mask pair."""
+    pred_bin = np.asarray(pred_mask, dtype=bool)
+    gt_bin = np.asarray(gt_mask, dtype=bool)
+    intersection = np.logical_and(pred_bin, gt_bin).sum()
+    denom = pred_bin.sum() + gt_bin.sum()
+    if denom == 0:
+        return 1.0
+    return float((2.0 * intersection) / denom)
+
+
 def _draw_patient_panel(
     case_id: str,
     pred: Dict,
@@ -224,20 +235,33 @@ def _draw_patient_panel(
     is_patho = "_P" in case_id
     type_tag = "Pathological" if is_patho else "Normal"
     title_variant = VARIANT_SHORT.get(pred["variant"], pred["variant"])
+    display_model_label = f"{pred['variant']} ({title_variant})"
 
-    # ── Main 6-panel figure: GT vs Prediction ──
+    # ── Main 6-panel figure: Ground Truth vs Prediction ──
     has_gt = gt_anatomy is not None and gt_pathology is not None
     ncols = 3 if has_gt else 3
     nrows = 2 if has_gt else 1
 
+    mid_slice_dice = {
+        "LV": np.nan,
+        "MYO": np.nan,
+        "MI": np.nan,
+        "MVO": np.nan,
+    }
+    if has_gt:
+        mid_slice_dice["LV"] = _dice_score(anatomy[mid] == 1, gt_anatomy[mid] == 1)
+        mid_slice_dice["MYO"] = _dice_score(anatomy[mid] == 2, gt_anatomy[mid] == 2)
+        mid_slice_dice["MI"] = _dice_score(pathology[0, mid], gt_pathology[0, mid])
+        mid_slice_dice["MVO"] = _dice_score(pathology[1, mid], gt_pathology[1, mid])
+
     fig = plt.figure(
-        figsize=(5 * ncols, 4.5 * nrows + 0.8), facecolor="white"
+        figsize=(5 * ncols, 5.4 * nrows + 1.0), facecolor="white"
     )
 
     if has_gt:
         gs = fig.add_gridspec(
             nrows, ncols, hspace=0.30, wspace=0.12,
-            top=0.90, bottom=0.02, left=0.02, right=0.98,
+            top=0.82, bottom=0.03, left=0.02, right=0.98,
         )
         # Row 0: Ground Truth
         ax_gt_lge = fig.add_subplot(gs[0, 0])
@@ -251,14 +275,14 @@ def _draw_patient_panel(
         gt_anat_rgb[gt_anatomy[mid] == 2] = COLORS["MYO"]
         ax_gt_anat.imshow(image[mid], cmap="gray")
         ax_gt_anat.imshow(gt_anat_rgb, alpha=0.45)
-        ax_gt_anat.set_title("GT: LV + MYO", fontsize=11)
+        ax_gt_anat.set_title("Ground Truth: LV + MYO", fontsize=11)
         ax_gt_anat.axis("off")
 
         ax_gt_full = fig.add_subplot(gs[0, 2])
         ax_gt_full.imshow(
             _rgb_overlay(image[mid], gt_anatomy[mid], gt_pathology[:, mid])
         )
-        ax_gt_full.set_title("GT: Full Overlay", fontsize=11)
+        ax_gt_full.set_title("Ground Truth: Full Overlay", fontsize=11)
         ax_gt_full.axis("off")
 
         # Row 1: Prediction
@@ -267,7 +291,7 @@ def _draw_patient_panel(
         lv_rgb[anatomy[mid] == 1] = COLORS["LV"]
         ax_pred_lv.imshow(image[mid], cmap="gray")
         ax_pred_lv.imshow(lv_rgb, alpha=0.50)
-        ax_pred_lv.set_title("Pred: LV Cavity", fontsize=11)
+        ax_pred_lv.set_title("Prediction: LV Cavity", fontsize=11)
         ax_pred_lv.axis("off")
 
         ax_pred_myo = fig.add_subplot(gs[1, 1])
@@ -278,14 +302,14 @@ def _draw_patient_panel(
         myo_rgb[pathology[1, mid].astype(bool)] = COLORS["MVO"]
         ax_pred_myo.imshow(image[mid], cmap="gray")
         ax_pred_myo.imshow(myo_rgb, alpha=0.50)
-        ax_pred_myo.set_title("Pred: MYO + MI + MVO", fontsize=11)
+        ax_pred_myo.set_title("Prediction: MYO + MI + MVO", fontsize=11)
         ax_pred_myo.axis("off")
 
         ax_pred_full = fig.add_subplot(gs[1, 2])
         ax_pred_full.imshow(
             _rgb_overlay(image[mid], anatomy[mid], pathology[:, mid])
         )
-        ax_pred_full.set_title("Pred: Full Overlay", fontsize=11)
+        ax_pred_full.set_title("Prediction: Full Overlay", fontsize=11)
         ax_pred_full.axis("off")
         ax_pred_full.legend(
             handles=_legend_handles(), loc="lower right", fontsize=7, framealpha=0.85
@@ -293,7 +317,7 @@ def _draw_patient_panel(
     else:
         gs = fig.add_gridspec(
             1, ncols, hspace=0.30, wspace=0.12,
-            top=0.88, bottom=0.02, left=0.02, right=0.98,
+            top=0.82, bottom=0.03, left=0.02, right=0.98,
         )
         ax_lge = fig.add_subplot(gs[0, 0])
         ax_lge.imshow(image[mid], cmap="gray")
@@ -306,12 +330,12 @@ def _draw_patient_panel(
         anat_rgb[anatomy[mid] == 2] = COLORS["MYO"]
         ax_anat.imshow(image[mid], cmap="gray")
         ax_anat.imshow(anat_rgb, alpha=0.45)
-        ax_anat.set_title("Pred: LV + MYO", fontsize=11)
+        ax_anat.set_title("Prediction: LV + MYO", fontsize=11)
         ax_anat.axis("off")
 
         ax_full = fig.add_subplot(gs[0, 2])
         ax_full.imshow(_rgb_overlay(image[mid], anatomy[mid], pathology[:, mid]))
-        ax_full.set_title("Pred: Full Overlay", fontsize=11)
+        ax_full.set_title("Prediction: Full Overlay", fontsize=11)
         ax_full.axis("off")
         ax_full.legend(
             handles=_legend_handles(), loc="lower right", fontsize=7, framealpha=0.85
@@ -324,11 +348,23 @@ def _draw_patient_panel(
     subtitle = (
         f"MI={mi_pct:.1f}% MVO={mvo_pct:.1f}% Dysfunction={dys_pct:.1f}% of MYO"
     )
-    fig.suptitle(
-        f"{MODEL_NAME} ({title_variant})  —  {case_id}  [{type_tag}]\n{subtitle}",
-        fontsize=13,
+    dice_text = (
+        "Dice scores (mid slice) — "
+        f"LV: {mid_slice_dice['LV']:.3f} | "
+        f"MYO: {mid_slice_dice['MYO']:.3f} | "
+        f"MI: {mid_slice_dice['MI']:.3f} | "
+        f"MVO: {mid_slice_dice['MVO']:.3f}"
+    )
+    fig.text(
+        0.5,
+        0.965,
+        f"{display_model_label}  —  {case_id}  [{type_tag}]\n{subtitle}\n{dice_text}",
+        ha="center",
+        va="top",
+        fontsize=11.5,
         fontweight="bold",
-        y=0.98,
+        linespacing=1.45,
+        color="black",
     )
 
     panel_path = out_dir / f"{case_id}_segmentation.png"
@@ -398,7 +434,7 @@ def _draw_gallery(
         axes[row, 0].axis("off")
 
         if has_gt_any:
-            # Column 1: GT overlay
+            # Column 1: Ground Truth overlay
             if gt_anatomy is not None and gt_pathology is not None:
                 axes[row, 1].imshow(
                     _rgb_overlay(image[mid], gt_anatomy[mid], gt_pathology[:, mid])
@@ -406,7 +442,7 @@ def _draw_gallery(
             else:
                 axes[row, 1].imshow(image[mid], cmap="gray")
                 axes[row, 1].text(
-                    0.5, 0.5, "No GT", ha="center", va="center",
+                    0.5, 0.5, "No Ground Truth", ha="center", va="center",
                     transform=axes[row, 1].transAxes, fontsize=12, color="white",
                 )
             if row == 0:
@@ -439,11 +475,16 @@ def _draw_gallery(
         handles=_legend_handles(), loc="lower right", fontsize=9, framealpha=0.9,
     )
 
+    gallery_variant = next(
+        (p["pred"]["variant"] for p in patients if p.get("pred", {}).get("variant")),
+        "M5",
+    )
     fig.suptitle(
-        f"{MODEL_NAME} (M5) — Segmentation Gallery",
+        f"{gallery_variant} ({MODEL_NAME}) — Segmentation Gallery",
         fontsize=15,
         fontweight="bold",
         y=1.0,
+        linespacing=1.35,
     )
     fig.tight_layout()
     gallery_path = out_dir / "segmentation_gallery.png"

@@ -37,7 +37,7 @@ FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 # Model definitions
 # ---------------------------------------------------------------------------
 ABLATION_VARIANTS = ["M1", "M2", "M3", "M4", "M5"]
-BASELINE_VARIANTS = ["UNET", "SEGRESNET", "SWINUNETR", "DYNUNET"]
+BASELINE_VARIANTS = ["SEGRESNET", "SWINUNETR", "DYNUNET"]
 ALL_VARIANTS = ABLATION_VARIANTS + BASELINE_VARIANTS
 
 DISPLAY_NAMES = {
@@ -46,7 +46,6 @@ DISPLAY_NAMES = {
     "M3": "M3 (AFDD-Net-D)",
     "M4": "M4 (AFDD-Net-T)",
     "M5": "M5 (AFDD-Net)",
-    "UNET": "UNet",
     "SEGRESNET": "SegResNet",
     "SWINUNETR": "SwinUNETR",
     "DYNUNET": "DynUNet",
@@ -61,7 +60,6 @@ ABLATION_COLORS = {
     "M5": "#e11d48",  # Rose (highlight)
 }
 BASELINE_COLORS = {
-    "UNET": "#64748b",    # Slate
     "SEGRESNET": "#94a3b8",   # Light slate
     "SWINUNETR": "#78716c",  # Stone
     "DYNUNET": "#a8a29e",    # Warm gray
